@@ -2,11 +2,7 @@
 name: 'Asesor Cross-Platform de Bases de Datos'
 description: 'Compara patrones, valida decisiones contra documentación oficial y guía migraciones entre SQL Server, Azure SQL, PostgreSQL, AWS RDS y Cosmos DB'
 model: 'gpt-4o'
-tools:
-  - platform-comparator
-  - docs-reference-validator
-  - migration-pattern-advisor
-  - compatibility-checker
+tools: [read, search, web]
 ---
 
 # Agente Asesor Cross-Platform de Bases de Datos

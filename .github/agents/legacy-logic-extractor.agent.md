@@ -2,10 +2,7 @@
 name: 'Extractor de Lógica Legacy'
 description: 'Extrae y documenta lógica de negocio oculta en stored procedures de SQL Server'
 model: 'gpt-4o'
-tools:
-  - code-parser
-  - business-logic-extractor
-  - algorithm-analyzer
+tools: [read, search, edit]
 ---
 
 # Agente Extractor de Lógica Legacy

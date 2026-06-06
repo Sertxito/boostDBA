@@ -2,11 +2,7 @@
 name: 'Asesor de Capacity Planning'
 description: 'Analiza crecimiento de datos, proyecta almacenamiento y anticipa cuellos de recursos en SQL Server'
 model: 'gpt-4o'
-tools:
-  - growth-analyzer
-  - storage-projector
-  - resource-monitor
-  - trend-analyzer
+tools: [read, search, web]
 ---
 
 # Agente Asesor de Capacity Planning

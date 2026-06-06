@@ -2,10 +2,7 @@
 name: 'Evaluador de Impacto de Cambios'
 description: 'Evalúa el impacto completo de cambios propuestos en la base de datos antes de ejecución'
 model: 'gpt-4o'
-tools:
-  - impact-calculator
-  - risk-analyzer
-  - test-scenario-generator
+tools: [read, search]
 ---
 
 # Agente Evaluador de Impacto de Cambios

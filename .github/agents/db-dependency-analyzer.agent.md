@@ -2,10 +2,7 @@
 name: 'Analizador de Dependencias de BD'
 description: 'Analiza dependencias de SQL Server para entender criticidad de base de datos y cadenas de impacto'
 model: 'gpt-4o'
-tools:
-  - database-analyzer
-  - dependency-mapper
-  - impact-calculator
+tools: [read, search]
 ---
 
 # Agente Analizador de Dependencias de BD

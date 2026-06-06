@@ -2,11 +2,7 @@
 name: 'Asesor de Alta Disponibilidad'
 description: 'Evalúa y recomienda estrategias de HA/DR para SQL Server: AlwaysOn, replicación, log shipping y failover'
 model: 'gpt-4o'
-tools:
-  - ha-auditor
-  - replication-checker
-  - failover-validator
-  - rto-rpo-calculator
+tools: [read, search, web]
 ---
 
 # Agente Asesor de Alta Disponibilidad

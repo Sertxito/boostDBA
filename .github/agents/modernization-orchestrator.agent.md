@@ -2,12 +2,7 @@
 name: 'Orquestador de Modernización'
 description: 'Coordina el viaje completo de modernización de BD desde análisis hasta ejecución'
 model: 'gpt-4o'
-tools:
-  - dependency-analyzer
-  - logic-extractor
-  - impact-assessor
-  - documentation-generator
-  - orchestration-engine
+tools: [read, search, edit, agent, web]
 ---
 
 # Agente Orquestador de Modernización

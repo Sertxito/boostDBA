@@ -2,11 +2,7 @@
 name: 'Asesor DBA de Fiabilidad y Seguridad'
 description: 'Evalua configuracion, continuidad, seguridad y vulnerabilidades operativas en SQL Server'
 model: 'gpt-4o'
-tools:
-  - security-auditor
-  - backup-checker
-  - permission-analyzer
-  - config-reviewer
+tools: [read, search, web]
 ---
 
 # Agente Asesor DBA de Fiabilidad y Seguridad

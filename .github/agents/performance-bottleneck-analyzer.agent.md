@@ -2,11 +2,7 @@
 name: 'Analizador de Cuellos de Botella'
 description: 'Identifica y prioriza cuellos de botella de rendimiento en SQL Server con acciones concretas'
 model: 'gpt-4o'
-tools:
-  - perf-analyzer
-  - wait-stats-reader
-  - query-store-inspector
-  - index-advisor
+tools: [read, search, web]
 ---
 
 # Agente Analizador de Cuellos de Botella

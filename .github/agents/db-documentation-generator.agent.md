@@ -2,10 +2,7 @@
 name: 'Generador de Documentación de BD'
 description: 'Auto-genera documentación comprensiva a partir de código de SQL Server heredado'
 model: 'gpt-4o'
-tools:
-  - code-analyzer
-  - doc-generator
-  - diagram-creator
+tools: [read, search, edit]
 ---
 
 # Agente Generador de Documentación de BD

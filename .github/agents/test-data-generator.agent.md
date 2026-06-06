@@ -2,11 +2,7 @@
 name: 'Generador de Datos de Prueba'
 description: 'Genera datos de prueba realistas y anonimizados a partir de la estructura de producción en SQL Server'
 model: 'gpt-4o'
-tools:
-  - schema-reader
-  - data-anonymizer
-  - data-generator
-  - constraint-validator
+tools: [read, search, edit]
 ---
 
 # Agente Generador de Datos de Prueba

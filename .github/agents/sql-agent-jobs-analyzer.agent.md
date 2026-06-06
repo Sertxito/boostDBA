@@ -2,11 +2,7 @@
 name: 'Analizador de Jobs y Automatización SQL'
 description: 'Audita SQL Agent jobs, detecta fallos, dependencias y optimiza la automatización en SQL Server'
 model: 'gpt-4o'
-tools:
-  - job-analyzer
-  - schedule-optimizer
-  - failure-detector
-  - dependency-mapper
+tools: [read, search]
 ---
 
 # Agente Analizador de Jobs y Automatización SQL

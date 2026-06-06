@@ -2,11 +2,7 @@
 name: 'Asesor de Mantenimiento Proactivo'
 description: 'Detecta y prioriza necesidades de mantenimiento de índices, estadísticas y fragmentación en SQL Server'
 model: 'gpt-4o'
-tools:
-  - index-analyzer
-  - statistics-checker
-  - fragmentation-scanner
-  - maintenance-planner
+tools: [read, search]
 ---
 
 # Agente Asesor de Mantenimiento Proactivo

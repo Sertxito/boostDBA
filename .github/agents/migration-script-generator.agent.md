@@ -2,11 +2,7 @@
 name: 'Generador de Scripts de Migración'
 description: 'Genera scripts de migración seguros con rollout, rollback y validación para cambios en SQL Server'
 model: 'gpt-4o'
-tools:
-  - script-generator
-  - impact-validator
-  - rollback-builder
-  - test-scenario-generator
+tools: [read, search, edit]
 ---
 
 # Agente Generador de Scripts de Migración

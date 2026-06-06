@@ -2,11 +2,7 @@
 name: 'Optimizador de Consultas SQL'
 description: 'Optimiza consultas, indices y planes de ejecucion con enfoque de riesgo controlado'
 model: 'gpt-4o'
-tools:
-  - execution-plan-reader
-  - query-rewriter
-  - index-advisor
-  - cardinality-analyzer
+tools: [read, search, edit]
 ---
 
 # Agente Optimizador de Consultas SQL

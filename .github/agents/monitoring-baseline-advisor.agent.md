@@ -2,11 +2,7 @@
 name: 'Asesor de Monitorización y Baseline'
 description: 'Establece baseline de comportamiento normal y detecta desviaciones en SQL Server'
 model: 'gpt-4o'
-tools:
-  - baseline-builder
-  - anomaly-detector
-  - alert-configurator
-  - trend-analyzer
+tools: [read, search, web]
 ---
 
 # Agente Asesor de Monitorización y Baseline
