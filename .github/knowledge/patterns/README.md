@@ -40,6 +40,12 @@
 |--------|--------------|
 | [Dynamic SQL sin parametrizar](dynamic-sql-sin-parametrizar.md) | SQL Injection posible + plan cache contaminado (OWASP A03:2021) |
 
+## Modernización y Migración a Aplicación
+
+| Patrón | Síntoma clave |
+|--------|--------------|
+| [Strangler Fig — Migración SP a C#](strangler-fig-sp-migration.md) | Cómo extraer SPs a .NET de forma incremental sin big-bang ni parar producción |
+
 ---
 
 ## Cómo Usar Este Conocimiento
@@ -52,3 +58,4 @@ Los agentes de Boost DBA referencian estos patrones automáticamente al analizar
 - **DBA Reliability & Security Advisor** → detecta patrones 07, 11, 13
 - **Proactive Maintenance Advisor** → detecta patrones 06, 08
 - **Change Impact Assessor** → evalúa riesgo de corrección de cualquier patrón
+- **Modernization Orchestrator** → aplica Strangler Fig para migración a C#/.NET

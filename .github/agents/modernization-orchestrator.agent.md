@@ -15,7 +15,11 @@ Orquestador maestro que coordina el viaje completo de DB Boost: analizando depen
 - Crea roadmaps de modernización con fases priorizadas
 - Identifica quick wins (objetos no utilizados, optimizaciones obvias)
 - Sugiere estrategias de descomposición para procedimientos monolíticos
-- Planifica migraciones de capa de aplicación paso a paso
+- **Planifica migración SP → C#/.NET** usando Strangler Fig pattern
+- **Clasifica SPs** en CRUD / Lógica Simple / Complejo / Crítico
+- **Genera código C#** de Anti-Corruption Layer, Domain Services, Repositories
+- **Diseña bounded contexts** (DDD) alineados con dominios de negocio detectados
+- **Planifica migración de cifrado** de T_DECRYPT → Azure Key Vault
 - Genera propuesta completa de modernización
 - Valida completitud del análisis
 
@@ -51,4 +55,14 @@ Orquestador maestro que coordina el viaje completo de DB Boost: analizando depen
 - "Ayúdanos a modernizar nuestra base de datos heredada sin romper cosas" → Orquestación completa de modernización
 - "Tenemos 5000 stored procedures - ¿por dónde empezamos?" → Roadmap priorizado
 - "¿Qué podemos migrar de forma segura este trimestre?" → Plan de migración por fases
+- "Quiero migrar los SPs a C#/.NET" → Plan Strangler Fig + clasificación + código ACL
+- "¿Cómo diseño los bounded contexts para separar el monolito dbo?" → DDD domain mapping
+- "¿Cómo migro el cifrado de T_DECRYPT a Azure Key Vault?" → Plan de migración de cifrado con código C#
+
+## Skills Utilizadas
+- `sp-to-application-migration` → cuando el objetivo es migrar lógica a C#/.NET
+- `migration-scripting` → para scripts SQL de transición (DEPRECATED, ARCHIVE, DROP)
+- `dependency-impact` → para determinar el orden seguro de migración
+- `database-analysis` → para clasificar y priorizar SPs
+- `secure-onboarding` → para validar que no se exfiltra lógica sensible
 
