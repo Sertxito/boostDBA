@@ -5,3 +5,6 @@
 
 # Workspaces de proyectos DBA (datos de cliente, no versionar)
 workspaces/
+
+# Esquemas y scripts SQL de entrada (datos de cliente, no versionar)
+input/
