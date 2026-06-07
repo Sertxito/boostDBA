@@ -309,6 +309,13 @@ Genera datos sintéticos respetando constraints y anonimiza subconjuntos de prod
 
 ```
 BoostDBA/
+├── workspaces/                          # ← En .gitignore: datos de cliente nunca a git
+│   └── <ProjectName>/                   # Un directorio por proyecto analizado
+│       ├── fuente-de-verdad/            # Schema SQL + manifest.json (no versionado)
+│       ├── reports/                     # Reportes MD generados (sí versionados)
+│       ├── plans/                       # Roadmaps de acción
+│       └── logs/                        # Trazabilidad de sesiones
+│
 ├── agents/                              # Agentes especializados
 │   ├── dba-360-orchestrator.agent.md
 │   ├── db-dependency-analyzer.agent.md
@@ -385,10 +392,11 @@ BoostDBA/
 │       └── ...                          # y 9 más
 │
 ├── scripts/                             # Scripts de automatización
-│   ├── run-dba360-wizard.ps1           # ★ Punto de entrada: inicializa dba_<Proyecto>/ externo
+│   ├── run-dba360-wizard.ps1           # ★ Punto de entrada: crea workspaces/<Proyecto>/
 │   ├── bootstrap-source-of-truth.ps1   # Crea estructura fuente-de-verdad/ y manifest.json
-│   └── security-preflight.ps1          # Preflight de seguridad (detecta secretos, datos sensibles)
+│   └── security-preflight.ps1          # Preflight: detecta credenciales, secretos, rutas sensibles
 │
+├── .gitignore                           # Protege workspaces/ e input/ — data de cliente nunca a git
 └── README.md                            # Este archivo
 ```
 
@@ -399,23 +407,39 @@ BoostDBA/
 Ejecutar desde PowerShell:
 
 ```powershell
-pwsh -File .\scripts\run-dba360-wizard.ps1 -ProjectName "MiProyecto" -SchemaPath "C:\tus-esquemas"
+# Desde la raíz del repositorio BoostDBA
+pwsh -File .github\scripts\run-dba360-wizard.ps1 -ProjectName "MiProyecto" -SchemaPath "C:\tus-esquemas"
 ```
 
-O si tienes una connection string:
+O con connection string directa al servidor SQL:
 
 ```powershell
-pwsh -File .\scripts\run-dba360-wizard.ps1 -ProjectName "MiProyecto" -ConnectionString "Server=...;Database=...;User Id=...;Password=...;"
+pwsh -File .github\scripts\run-dba360-wizard.ps1 -ProjectName "MiProyecto" -ConnectionString "Server=.;Database=MiDB;Integrated Security=true"
 ```
 
 **Qué hace el wizard:**
-- Crea la carpeta `dba_MiProyecto/` fuera del producto (hermana de BoostDBA)
-- Importa esquemas y crea la fuente de verdad local
-- Ejecuta preflight de seguridad (detecta secretos, datos sensibles)
-- Genera manifest para trabajar sin depender de conexión continua
+1. Crea `workspaces/MiProyecto/` dentro del repo (protegido por `.gitignore`)
+2. Copia el schema SQL y genera la fuente de verdad local
+3. Ejecuta preflight de seguridad (detecta credenciales, datos sensibles, rutas prohibidas)
+4. Genera `manifest.json` con inventario completo (tablas, SPs, funciones, índices, FKs)
+5. Listo para análisis sin conexión continua al servidor
 
-> **¿Qué es `dba_<Proyecto>/`?**  
-> Carpeta de trabajo del cliente, fuera del producto Boost DBA. Contiene: `fuente-de-verdad/` (esquemas y manifest), `reports/` (informes generados), `plans/` (roadmaps), `logs/` (trazabilidad).
+> **¿Por qué dentro del repo?**  
+> La carpeta `workspaces/` vive dentro del repo pero está en `.gitignore`: el dato de cliente nunca entra a git. Tienes trazabilidad de los reportes generados (sí versionados) sin filtrar el schema o la fuente de verdad.
+
+**Estructura creada:**
+```
+BoostDBA/
+└── workspaces/
+    └── MiProyecto/                  # ← gitignored (fuente de verdad)
+        ├── fuente-de-verdad/
+        │   ├── schema/db.sql        # Schema original (nunca a git)
+        │   ├── manifest.json        # Inventario de objetos
+        │   └── tables-by-schema.json
+        ├── reports/                 # Reportes MD generados por agentes
+        ├── plans/                   # Roadmaps y planes de acción
+        └── logs/                    # Trazabilidad de sesiones
+```
 
 ---
 
@@ -423,7 +447,7 @@ pwsh -File .\scripts\run-dba360-wizard.ps1 -ProjectName "MiProyecto" -Connection
 
 En VS Code con Copilot, selecciona el agente **[DBA 360 Orchestrator](agents/dba-360-orchestrator.agent.md)** y pregunta:
 
-> *"Haz una evaluación DBA 360 sobre dba_MiProyecto"*
+> *"Haz una evaluación DBA 360 sobre workspaces/MiProyecto"*
 
 El orquestador:
 - Lee la fuente de verdad local
@@ -457,12 +481,37 @@ A partir de ahora, la fuente de verdad local es tu verdad: sin conexión continu
 | Generar script de cambio con rollback | [migration-script-generator](agents/migration-script-generator.agent.md) |
 | Datos de prueba para staging/dev | [test-data-generator](agents/test-data-generator.agent.md) |
 
+## Modelo de Seguridad
+
+Boost DBA 360 aplica **seguridad por defecto** en cada capa:
+
+| Capa | Protección | Cómo |
+|---|---|---|
+| **Datos de cliente** | Nunca a git | `workspaces/` e `input/` en `.gitignore` |
+| **Connection strings** | Redactadas antes de persistir | `bootstrap-source-of-truth.ps1` enmascara host, DB, user, password |
+| **Schema SQL** | Local solamente | Nunca sale de `workspaces/<Proyecto>/fuente-de-verdad/` |
+| **Secretos en schema** | Detectados y reportados | `security-preflight.ps1` escanea passwords, tokens, API keys |
+| **Reportes** | Solo metadata y hallazgos | Sin SQL literal ni datos de negocio en salidas externas |
+| **Exfiltración** | Bloqueada por diseño | El análisis se hace local; el agente trabaja sobre manifests, no datos raw |
+
+**Preflight de Seguridad** — se ejecuta automáticamente tras bootstrap:
+```
+Patrones detectados: passwords, API keys, client secrets, tokens, connection strings
+Extensiones analizadas: .sql, .json, .yml, .config, .xml, .cs, .md
+Resultado: PASS / FAIL con ubicación exacta del hallazgo
+```
+
+---
+
 ## Stack Técnico
 
-- **Plataforma**: SQL Server 2016+
-- **Análisis**: Vistas de catálogo (`sys.*`), DMVs, Query Store
-- **IA**: Agentes LLM especializados por dominio DBA
+- **Plataforma objetivo**: SQL Server 2016+, Azure SQL
+- **Análisis estático**: Regex sobre schema SQL (sin conexión necesaria)
+- **Análisis en vivo**: Vistas de catálogo (`sys.*`), DMVs, Query Store
+- **IA**: 17 agentes LLM especializados por dominio DBA + 17 skills reutilizables
+- **Automatización**: PowerShell (bootstrap, preflight, wizard)
 - **Salidas**: Markdown, JSON, diagramas Mermaid, plantillas de informe
+- **IDE**: VS Code + GitHub Copilot (modo Agent)
 
 ## Ejemplos Incluidos
 
