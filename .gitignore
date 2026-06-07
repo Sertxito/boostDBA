@@ -8,3 +8,6 @@ workspaces/
 
 # Esquemas y scripts SQL de entrada (datos de cliente, no versionar)
 input/
+
+# Token usage CSV temporales (no versionar, solo el MD)
+.github/reports/*.csv

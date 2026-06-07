@@ -252,6 +252,28 @@ Salida: script de datos sintéticos + anonimización + validación de integridad
 Usar cuando: "Genera datos de prueba para staging" / "Anonimiza este subconjunto de producción"
 ```
 
+### 16. **Asesor Cross-Platform** 🌐
+Contrasta recomendaciones con documentación oficial y evalúa viabilidad de migración entre plataformas.
+
+```
+Entrada: instancia SQL Server + plataforma destino (Azure SQL, PostgreSQL, AWS RDS...)
+Salida: informe de compatibilidad, blockers, equivalencias y ruta de migración
+
+Usar cuando: "¿Podemos migrar a Azure SQL?" / "¿Cómo se hace esto en PostgreSQL?"
+Ejemplo: Detecta que hierarchyid, OPEN SYMMETRIC KEY y compat 140 son blockers para Azure SQL Hyperscale
+```
+
+### 17. **Exportador de Informes Ejecutivos** 📄
+Compone documentos de entrega profesionales a partir de los artefactos DBA 360 y los exporta a Word (.docx).
+
+```
+Entrada: workspace con análisis DBA 360 completo + audiencia objetivo
+Salida: documento maestro .md compuesto + .docx listo para entregar
+
+Usar cuando: "Necesito un informe para el cliente" / "Quiero presentar esto a dirección"
+Ejemplo: Genera OFERTA25-INFORME-EJECUTIVO.docx con portada, tabla de contenidos, diagramas y roadmap
+```
+
 ## Habilidades Reutilizables
 
 ### **database-analysis** 📊
@@ -514,6 +536,7 @@ A partir de ahora, la fuente de verdad local es tu verdad: sin conexión continu
 | Estado de AlwaysOn / RTO-RPO real | [high-availability-advisor](agents/high-availability-advisor.agent.md) |
 | Generar script de cambio con rollback | [migration-script-generator](agents/migration-script-generator.agent.md) |
 | Datos de prueba para staging/dev | [test-data-generator](agents/test-data-generator.agent.md) |
+| Comparar con otra plataforma / validar contra docs oficiales | [cross-platform-advisor](agents/cross-platform-advisor.agent.md) |
 
 ## Modelo de Seguridad
 

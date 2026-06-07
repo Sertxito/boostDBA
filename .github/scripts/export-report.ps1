@@ -1,0 +1,125 @@
+# ================================================================
+# Export Report - Convierte MD a DOCX con Pandoc
+# ================================================================
+# Uso: powershell -File .github\scripts\export-report.ps1 -ProjectName OFERTA25 -Audience cliente
+# ================================================================
+
+[CmdletBinding(DefaultParameterSetName = 'Export')]
+param(
+    [Parameter(ParameterSetName = 'Export', Mandatory = $true)]
+    [string]$ProjectName,
+
+    [Parameter(ParameterSetName = 'Export')]
+    [ValidateSet('cliente', 'techlead', 'dba')]
+    [string]$Audience = 'cliente',
+
+    [Parameter(ParameterSetName = 'Check', Mandatory = $false)]
+    [switch]$Check
+)
+
+$ErrorActionPreference = 'Stop'
+
+# BASE PATHS
+$scriptDir = $PSScriptRoot
+$repoRoot = (Resolve-Path (Join-Path $scriptDir '..' '..')).Path
+$workspaceDir = Join-Path $repoRoot 'workspaces' $ProjectName
+
+# TEST DEPENDENCIES
+Write-Host ""
+Write-Host "=== VERIFICACION DE DEPENDENCIAS ===" -ForegroundColor Cyan
+
+$pandoc = Get-Command pandoc -ErrorAction SilentlyContinue
+if ($pandoc) {
+    $pver = & pandoc --version | Select-Object -First 1
+    Write-Host "  OK Pandoc: $pver" -ForegroundColor Green
+} else {
+    Write-Host "  FALTA Pandoc >= 3.1" -ForegroundColor Red
+    exit 1
+}
+
+$node = Get-Command node -ErrorAction SilentlyContinue
+if ($node) {
+    $nver = & node --version
+    Write-Host "  OK Node.js: $nver" -ForegroundColor Green
+} else {
+    Write-Host "  FALTA Node.js >= 18" -ForegroundColor Red
+    exit 1
+}
+
+$mmf = Get-Command mermaid-filter -ErrorAction SilentlyContinue
+if ($mmf) {
+    Write-Host "  OK mermaid-filter: disponible" -ForegroundColor Green
+} else {
+    Write-Host "  INFO mermaid-filter no instalado (diagrams como texto)" -ForegroundColor DarkGray
+}
+
+Write-Host "  TODAS OK" -ForegroundColor Green
+Write-Host ""
+
+# GET MASTER DOCUMENT
+$audienceUpper = $Audience.ToUpper()
+$masterMd = Join-Path $workspaceDir "$ProjectName-INFORME-$audienceUpper.md"
+
+# Fallback a ejecutivo si no existe la variante
+if (-not (Test-Path $masterMd)) {
+    $masterMd = Join-Path $workspaceDir "$ProjectName-INFORME-EJECUTIVO.md"
+    if (-not (Test-Path $masterMd)) {
+        Write-Host "ERROR: No hay documento maestro en $workspaceDir" -ForegroundColor Red
+        exit 1
+    }
+}
+
+Write-Host "ORIGEN: $masterMd" -ForegroundColor Cyan
+Write-Host ""
+
+# PRE-RENDER MERMAID DIAGRAMS
+$mmdc = Get-Command mmdc -ErrorAction SilentlyContinue
+if ($mmdc) {
+    Write-Host "PRE-RENDERIZANDO DIAGRAMAS MERMAID..." -ForegroundColor Cyan
+    $renderScript = Join-Path $scriptDir "convert-mermaid-to-png.ps1"
+    if (Test-Path $renderScript) {
+        try {
+            $renderedMd = & $renderScript -InputMd $masterMd
+            if ($renderedMd -and (Test-Path $renderedMd)) {
+                $masterMd = $renderedMd
+                Write-Host "  OK - diagramas renderizados como PNG" -ForegroundColor Green
+            }
+        } catch {
+            Write-Host "  AVISO - fallo al renderizar diagramas, se exportaran como texto" -ForegroundColor Yellow
+        }
+    }
+} else {
+    Write-Host "AVISO: mmdc no encontrado. Los diagramas se exportaran como bloques de codigo." -ForegroundColor Yellow
+    Write-Host "       Para activar renderizado: npm install -g @mermaid-js/mermaid-cli" -ForegroundColor DarkGray
+}
+Write-Host ""
+# Destino siempre basado en el nombre original (sin -RENDERED)
+$destDocx = $masterMd -replace '-RENDERED\.md$', '.docx' -replace '\.md$', '.docx'
+Write-Host "DESTINO: $destDocx" -ForegroundColor Cyan
+Write-Host ""
+
+$pandocArgs = @(
+    $masterMd,
+    '-o', $destDocx,
+    '--from', 'markdown+smart',
+    '--to', 'docx',
+    '--standalone',
+    '--table-of-contents',
+    '--toc-depth', '3',
+    '--metadata', "title=$ProjectName - Informe DBA 360",
+    '--metadata', "date=$(Get-Date -Format 'yyyy-MM-dd')",
+    '--metadata', 'author=Boost DBA 360'
+)
+
+Write-Host "EJECUTANDO PANDOC..." -ForegroundColor Cyan
+& pandoc @pandocArgs
+
+if ($LASTEXITCODE -eq 0) {
+    $sizeKB = [math]::Round((Get-Item $destDocx).Length / 1KB, 1)
+    Write-Host ""
+    Write-Host "OK - DOCUMENTO GENERADO: $destDocx ($sizeKB KB)" -ForegroundColor Green
+    Write-Host ""
+} else {
+    Write-Host "ERROR - Pandoc fallo con codigo $LASTEXITCODE" -ForegroundColor Red
+    exit 1
+}
