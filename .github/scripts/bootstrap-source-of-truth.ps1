@@ -10,8 +10,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path $Root).Path
-$workspaceRoot = Split-Path -Parent $repoRoot
-$projectRoot = Join-Path $workspaceRoot ("dba_" + $ProjectName)
+$projectRoot = Join-Path $repoRoot "workspaces" $ProjectName
 $sourceRoot = Join-Path $projectRoot "fuente-de-verdad"
 $schemaOut = Join-Path $sourceRoot "schema"
 $reportsRoot = Join-Path $projectRoot "reports"

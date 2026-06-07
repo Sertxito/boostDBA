@@ -2,3 +2,6 @@
 **/PREFLIGHT-REPORT.md
 **/SANITIZATION-REPORT.md
 **/VALIDATION-REPORT.md
+
+# Workspaces de proyectos DBA (datos de cliente, no versionar)
+workspaces/

@@ -10,7 +10,6 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path $Root).Path
-$workspaceRoot = Split-Path -Parent $repoRoot
 $bootstrapScript = Join-Path $PSScriptRoot "bootstrap-source-of-truth.ps1"
 $preflightScript = Join-Path $PSScriptRoot "security-preflight.ps1"
 
@@ -27,7 +26,7 @@ if ($ConnectionString) { $bootstrapParams.ConnectionString = $ConnectionString }
 
 & $bootstrapScript @bootstrapParams
 
-$projectRoot = Join-Path $workspaceRoot ("dba_" + $ProjectName)
+$projectRoot = Join-Path $repoRoot "workspaces" $ProjectName
 Write-Host "[2/2] Ejecutando preflight de seguridad sobre la fuente de verdad..."
 & $preflightScript -Target $projectRoot
 
