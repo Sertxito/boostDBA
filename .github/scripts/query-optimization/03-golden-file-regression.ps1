@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
   SCRIPT 3/4: Golden-File Regression Test Generator
-  OFERTA25 Query Optimization Framework
+  ProjectName Query Optimization Framework
 
 .DESCRIPTION
   Para cada SP optimizado:
@@ -18,7 +18,7 @@
   SQL Server connection (Integrated Security by default)
 
 .PARAMETER DatabaseName
-  Target database (OFERTA25)
+  Target database (ProjectName)
 
 .PARAMETER SpName
   SP a testear (ej: 'bi.AccionesFormativasPlanFormacion_S')
@@ -30,7 +30,7 @@
 
 .PARAMETER GoldenDir
   Directorio donde guardar/leer golden files
-  Default: workspaces/OFERTA25/tests/golden
+  Default: workspaces/ProjectName/tests/golden
 
 .EXAMPLE
   # PASO 1: Captura resultado antes de optimizar
@@ -54,10 +54,10 @@ param(
     [string]$ServerInstance = 'localhost',
 
     [Parameter(Mandatory=$false)]
-    [string]$DatabaseName = 'OFERTA25',
+    [string]$DatabaseName = 'ProjectName',
 
     [Parameter(Mandatory=$false)]
-    [string]$GoldenDir = '.\workspaces\OFERTA25\tests\golden',
+    [string]$GoldenDir = '.\workspaces\ProjectName\tests\golden',
 
     [Parameter(Mandatory=$false)]
     [hashtable]$SpParams = @{},
@@ -299,3 +299,4 @@ switch ($Mode) {
         Write-Host "   Golden file: $goldenFile"
     }
 }
+

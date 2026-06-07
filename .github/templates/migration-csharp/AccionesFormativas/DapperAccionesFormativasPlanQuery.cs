@@ -1,5 +1,5 @@
 // =============================================================================
-// OFERTA25.Reporting/AccionesFormativas/DapperAccionesFormativasPlanQuery.cs
+// ProjectName.Reporting/AccionesFormativas/DapperAccionesFormativasPlanQuery.cs
 //
 // IMPLEMENTACIÓN FINAL — SQL embebido, sin SP.
 // Reemplaza bi.AccionesFormativasPlanFormacion_S cuando los tests pasen.
@@ -10,7 +10,7 @@
 using System.Data;
 using Dapper;
 
-namespace OFERTA25.Reporting.AccionesFormativas;
+namespace ProjectName.Reporting.AccionesFormativas;
 
 /// <summary>
 /// Implementación Dapper que replica el SQL del SP bi.AccionesFormativasPlanFormacion_S
@@ -170,3 +170,4 @@ internal sealed class DapperAccionesFormativasPlanQuery : IAccionesFormativasPla
         return result.ToList();
     }
 }
+

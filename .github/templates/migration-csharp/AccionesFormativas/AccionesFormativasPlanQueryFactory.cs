@@ -1,5 +1,5 @@
 // =============================================================================
-// OFERTA25.Reporting/AccionesFormativas/AccionesFormativasPlanQueryFactory.cs
+// ProjectName.Reporting/AccionesFormativas/AccionesFormativasPlanQueryFactory.cs
 //
 // Factory con Feature Flag — controla si se usa el ACL (SP) o la impl. Dapper.
 // Permite cutover gradual sin redeploy.
@@ -7,7 +7,7 @@
 
 using Microsoft.FeatureManagement;
 
-namespace OFERTA25.Reporting.AccionesFormativas;
+namespace ProjectName.Reporting.AccionesFormativas;
 
 /// <summary>
 /// Activa o desactiva la implementación Dapper mediante feature flag.
@@ -41,3 +41,4 @@ public sealed class AccionesFormativasPlanQueryFactory
             : _acl;
     }
 }
+

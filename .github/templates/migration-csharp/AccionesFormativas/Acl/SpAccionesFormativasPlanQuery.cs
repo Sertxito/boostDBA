@@ -1,5 +1,5 @@
 // =============================================================================
-// OFERTA25.Reporting/AccionesFormativas/Acl/SpAccionesFormativasPlanQuery.cs
+// ProjectName.Reporting/AccionesFormativas/Acl/SpAccionesFormativasPlanQuery.cs
 //
 // ANTI-CORRUPTION LAYER — Llama al SP original sin lógica nueva.
 // Esta clase es TEMPORAL. Se elimina cuando DapperAccionesFormativasPlanQuery
@@ -11,7 +11,7 @@
 using System.Data;
 using Dapper;
 
-namespace OFERTA25.Reporting.AccionesFormativas.Acl;
+namespace ProjectName.Reporting.AccionesFormativas.Acl;
 
 /// <summary>
 /// Implementación ACL: delega directamente a bi.AccionesFormativasPlanFormacion_S.
@@ -46,3 +46,4 @@ internal sealed class SpAccionesFormativasPlanQuery : IAccionesFormativasPlanQue
         return result.ToList();
     }
 }
+

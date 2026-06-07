@@ -1,12 +1,12 @@
 -- ============================================================
 -- SCRIPT 2/4: RECOMENDACIÓN DE ÍNDICES
--- OFERTA25 Query Optimization Framework
+-- ProjectName Query Optimization Framework
 -- Usage: Ejecutar DESPUÉS de capturar baseline y observar waits
 -- Output: DDL de índices listo para revisar y aplicar
 -- IMPORTANTE: Revisar ANTES de ejecutar, no aplicar en bloque
 -- ============================================================
 
-USE OFERTA25;
+USE ProjectName;
 GO
 
 -- ──────────────────────────────────────────────
@@ -49,7 +49,7 @@ JOIN sys.dm_db_missing_index_groups mig
     ON mid.index_handle = mig.index_handle
 JOIN sys.dm_db_missing_index_group_stats migs
     ON mig.index_group_handle = migs.group_handle
-WHERE mid.database_id = DB_ID('OFERTA25')
+WHERE mid.database_id = DB_ID('ProjectName')
 ORDER BY ImpactScore DESC;
 GO
 
@@ -151,7 +151,7 @@ FROM sys.indexes i
 LEFT JOIN sys.dm_db_index_usage_stats ius
     ON ius.object_id = i.object_id
     AND ius.index_id = i.index_id
-    AND ius.database_id = DB_ID('OFERTA25')
+    AND ius.database_id = DB_ID('ProjectName')
 WHERE OBJECTPROPERTY(i.object_id, 'IsUserTable') = 1
   AND i.type > 0    -- excluir heaps
   AND i.is_primary_key = 0
@@ -187,7 +187,7 @@ SELECT
         ELSE 'OK'
     END                                                         AS [SuggestedAction]
 FROM sys.dm_db_index_physical_stats(
-    DB_ID('OFERTA25'), NULL, NULL, NULL, 'LIMITED') ips
+    DB_ID('ProjectName'), NULL, NULL, NULL, 'LIMITED') ips
 JOIN sys.indexes i
     ON i.object_id = ips.object_id
     AND i.index_id = ips.index_id
@@ -201,3 +201,4 @@ PRINT '=== ANÁLISIS DE ÍNDICES COMPLETADO ===';
 PRINT 'IMPORTANTE: Revisar CADA DDL sugerido antes de ejecutar.';
 PRINT 'NO eliminar índices sin análisis de impacto en escrituras.';
 GO
+

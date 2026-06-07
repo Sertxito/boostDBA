@@ -4,7 +4,7 @@
 # y genera un nuevo .md con los PNG embebidos
 # ================================================================
 # Uso:
-#   & .\.github\scripts\convert-mermaid-to-png.ps1 -InputMd workspaces\OFERTA25\OFERTA25-INFORME-EJECUTIVO.md
+#   & .\.github\scripts\convert-mermaid-to-png.ps1 -InputMd workspaces\ProjectName\entrega\ProjectName-INFORME-CLIENTE.md
 # ================================================================
 
 param(
@@ -77,3 +77,4 @@ Write-Host "Salida: $outputMd" -ForegroundColor Cyan
 Write-Host ""
 
 return $outputMd
+

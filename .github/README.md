@@ -268,10 +268,10 @@ Compone documentos de entrega profesionales a partir de los artefactos DBA 360 y
 
 ```
 Entrada: workspace con análisis DBA 360 completo + audiencia objetivo
-Salida: documento maestro .md compuesto + .docx listo para entregar
+Salida: 5 documentos .docx en workspaces/<Proyecto>/entrega/
 
 Usar cuando: "Necesito un informe para el cliente" / "Quiero presentar esto a dirección"
-Ejemplo: Genera OFERTA25-INFORME-EJECUTIVO.docx con portada, tabla de contenidos, diagramas y roadmap
+Ejemplo: Genera INFORME-CLIENTE, INFORME-FUNCIONAL, ASSESSMENT, INFORME-TECHLEAD e INFORME-DBA en entrega/ con portada, TOC y diagramas
 ```
 
 ## Habilidades Reutilizables

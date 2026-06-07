@@ -1,7 +1,7 @@
 # ================================================================
 # Export Report - Convierte MD a DOCX con Pandoc
 # ================================================================
-# Uso: powershell -File .github\scripts\export-report.ps1 -ProjectName OFERTA25 -Audience cliente
+# Uso: powershell -File .github\scripts\export-report.ps1 -ProjectName ProjectName -Audience cliente
 # ================================================================
 
 [CmdletBinding(DefaultParameterSetName = 'Export')]
@@ -10,7 +10,7 @@ param(
     [string]$ProjectName,
 
     [Parameter(ParameterSetName = 'Export')]
-    [ValidateSet('cliente', 'techlead', 'dba')]
+    [ValidateSet('cliente', 'funcional', 'assessment', 'techlead', 'dba')]
     [string]$Audience = 'cliente',
 
     [Parameter(ParameterSetName = 'Check', Mandatory = $false)]
@@ -58,15 +58,28 @@ Write-Host ""
 
 # GET MASTER DOCUMENT
 $audienceUpper = $Audience.ToUpper()
-$masterMd = Join-Path $workspaceDir "$ProjectName-INFORME-$audienceUpper.md"
 
-# Fallback a ejecutivo si no existe la variante
-if (-not (Test-Path $masterMd)) {
-    $masterMd = Join-Path $workspaceDir "$ProjectName-INFORME-EJECUTIVO.md"
-    if (-not (Test-Path $masterMd)) {
-        Write-Host "ERROR: No hay documento maestro en $workspaceDir" -ForegroundColor Red
+$rootCandidate = if ($Audience -eq 'assessment') {
+    Join-Path $workspaceDir "$ProjectName-ASSESSMENT.md"
+} else {
+    Join-Path $workspaceDir "$ProjectName-INFORME-$audienceUpper.md"
+}
+
+$entregaDir = Join-Path $workspaceDir 'entrega'
+$entregaCandidate = if ($Audience -eq 'assessment') {
+    Join-Path $entregaDir "$ProjectName-ASSESSMENT.md"
+} else {
+    Join-Path $entregaDir "$ProjectName-INFORME-$audienceUpper.md"
+}
+
+if (Test-Path $rootCandidate) {
+    $masterMd = $rootCandidate
+} elseif (Test-Path $entregaCandidate) {
+    $masterMd = $entregaCandidate
+} else {
+    # Fallback historico a ejecutivo
+    Write-Host "ERROR: No hay documento maestro para audiencia '$Audience' en $workspaceDir/entrega/" -ForegroundColor Red
         exit 1
-    }
 }
 
 Write-Host "ORIGEN: $masterMd" -ForegroundColor Cyan
@@ -93,8 +106,12 @@ if ($mmdc) {
     Write-Host "       Para activar renderizado: npm install -g @mermaid-js/mermaid-cli" -ForegroundColor DarkGray
 }
 Write-Host ""
-# Destino siempre basado en el nombre original (sin -RENDERED)
-$destDocx = $masterMd -replace '-RENDERED\.md$', '.docx' -replace '\.md$', '.docx'
+# Destino: SIEMPRE en workspaces/<Proyecto>/entrega
+if (-not (Test-Path $entregaDir)) {
+    New-Item -ItemType Directory -Path $entregaDir -Force | Out-Null
+}
+$docxName = ([System.IO.Path]::GetFileName($masterMd)) -replace '-RENDERED\.md$', '.docx' -replace '\.md$', '.docx'
+$destDocx = Join-Path $entregaDir $docxName
 Write-Host "DESTINO: $destDocx" -ForegroundColor Cyan
 Write-Host ""
 
@@ -123,3 +140,4 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "ERROR - Pandoc fallo con codigo $LASTEXITCODE" -ForegroundColor Red
     exit 1
 }
+

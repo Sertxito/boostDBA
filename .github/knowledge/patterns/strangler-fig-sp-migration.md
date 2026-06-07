@@ -233,7 +233,7 @@ IMPACTO NEGOCIO
      └────────────────────────────────────► COMPLEJIDAD
 ```
 
-### Para OFERTA25
+### Para ProjectName
 
 | Categoría | SPs | Ejemplos | Fase |
 |---|---|---|---|
@@ -242,7 +242,7 @@ IMPACTO NEGOCIO
 | 🟡 Estratégicos | plc.\* (338) | Cálculos de convoc. | **2ª** |
 | 🟠 Técnicos | vt.\* (240) | Validaciones | **2ª** |
 | 🔴 Críticos | dbo.UP_UID_\* | Transaccionales | **4ª** |
-| 🔴 Críticos | Cifrado chain | UP_V_ABRIR_LLAVE | **4ª** (paralelo) |
+| 🔴 Críticos | Cadena de cifrado | SP de apertura de llave | **4ª** (paralelo) |
 
 ---
 
@@ -271,3 +271,4 @@ IMPACTO NEGOCIO
 - **Analizador de Dependencias** → Encontrar el orden correcto de migración
 - **Modernization Orchestrator** → Coordinar el roadmap completo
 - **Migration Script Generator** → Scripts SQL de transición (deprecate, archive, drop)
+

@@ -6,18 +6,31 @@ description: "Sincronización automática de tabla de tokens en cada commit"
 
 ## ✅ Status: COMPLETADO
 
-## Cómo Funciona (Simple)
+## Cómo Funciona
+
+Cada conversación con un agente (este modo, el Orquestador DBA, etc.) genera un transcript `.jsonl` que Copilot guarda automáticamente en:
+```
+%APPDATA%\Code\User\workspaceStorage\<hash>\GitHub.copilot-chat\transcripts\<session-id>.jsonl
+```
+
+El script lee ese fichero, estima tokens por bytes de contenido y clasifica cada mensaje por fase:
+- **Analysis** → uso de herramientas (`read_file`, `grep_search`, `schema`...)
+- **Documentation** → generación de informes, resúmenes, roadmaps...
+- **ExportWord** → conversiones con pandoc, mermaid, docx...
+- **Other** → el resto
 
 ```
-Copilot + skill token-usage-observability
+Conversación en curso → transcript .jsonl en AppData (automático)
   ↓
-Lee transcripts desde AppData
+token-usage-report.ps1 lee el transcript
   ↓
-Actualiza token-usage-daily-aggregate.md DIRECTAMENTE
+Estima tokens (bytes/4) y clasifica por fase
   ↓
-git commit
+Escribe entrada en token-usage-history.json (log local)
   ↓
-Pre-commit hook ejecuta la skill (asegura que MD esté fresco)
+Añade fila en token-usage-daily-aggregate.md
+  ↓
+git commit → hook repite el proceso para que el MD esté fresco
   ↓
 MD se commitea ✅
 ```
@@ -27,8 +40,7 @@ MD se commitea ✅
 | Archivo | Propósito |
 |---------|----------|
 | `token-usage-daily-aggregate.md` | ✅ Tabla con totales diarios, SE COMMITEA |
-
-**Eso es todo. Nada de CSV temporal, solo el MD.**
+| `token-usage-history.json` | Log local gitignored, no va a git |
 
 ---
 
@@ -49,6 +61,10 @@ Cada `git commit`:
 ```powershell
 .\.github\scripts\token-daily-close.ps1
 ```
+
+Los datos de tokens se guardan en:
+- `.github/reports/token-usage-history.json` (log local, gitignored)
+- `.github/reports/token-usage-daily-aggregate.md` (tabla visible, versionada)
 
 ---
 

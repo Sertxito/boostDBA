@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$SchemaFile,
-    [string]$OutDir = "workspaces/OFERTA25/plans"
+    [string]$OutDir = "workspaces/ProjectName/plans"
 )
 
 Set-StrictMode -Version Latest
@@ -37,7 +37,7 @@ foreach ($m in $matches) {
     $hasTran = [regex]::IsMatch($body, '(?i)\bBEGIN\s+(TRAN|TRANSACTION)\b|\bCOMMIT\b|\bROLLBACK\b')
     $hasCursor = [regex]::IsMatch($body, '(?i)\bCURSOR\b')
     $hasDynamicSql = [regex]::IsMatch($body, '(?i)\bsp_executesql\b|\bEXEC\s*\(\s*@')
-    $hasCrypto = [regex]::IsMatch($body, '(?i)\bUP_V_ABRIR_LLAVE\b|\bOPEN\s+SYMMETRIC\s+KEY\b|\bT_DECRYPT\b')
+    $hasCrypto = [regex]::IsMatch($body, '(?i)\bOPEN\s+SYMMETRIC\s+KEY\b|\bDECRYPT\w*\b|\bENCRYPT\w*\b')
 
     $writes = @($hasInsert, $hasUpdate, $hasDelete, $hasMerge) | Where-Object { $_ } | Measure-Object | Select-Object -ExpandProperty Count
 
@@ -63,7 +63,7 @@ foreach ($m in $matches) {
         $strategy = "Dapper-Query"
     }
 
-    # Schema overrides based on existing OFERTA25 migration strategy
+    # Schema overrides based on the migration strategy
     if ($schema -eq "bi") {
         $category = "CRUD"
         $wave = "Wave-1"
@@ -174,3 +174,4 @@ Write-Host "Total SPs: $($results.Count)"
 Write-Host "CSV: $csvPath"
 Write-Host "Schema summary: $schemaSummaryPath"
 Write-Host "MD: $mdPath"
+

@@ -19,7 +19,7 @@ Orquestador maestro que coordina el viaje completo de DB Boost: analizando depen
 - **Clasifica SPs** en CRUD / Lógica Simple / Complejo / Crítico
 - **Genera código C#** de Anti-Corruption Layer, Domain Services, Repositories
 - **Diseña bounded contexts** (DDD) alineados con dominios de negocio detectados
-- **Planifica migración de cifrado** de T_DECRYPT → Azure Key Vault
+- **Planifica migración de cifrado** desde funciones legacy de descifrado → Azure Key Vault
 - Genera propuesta completa de modernización
 - Valida completitud del análisis
 
@@ -57,7 +57,7 @@ Orquestador maestro que coordina el viaje completo de DB Boost: analizando depen
 - "¿Qué podemos migrar de forma segura este trimestre?" → Plan de migración por fases
 - "Quiero migrar los SPs a C#/.NET" → Plan Strangler Fig + clasificación + código ACL
 - "¿Cómo diseño los bounded contexts para separar el monolito dbo?" → DDD domain mapping
-- "¿Cómo migro el cifrado de T_DECRYPT a Azure Key Vault?" → Plan de migración de cifrado con código C#
+- "¿Cómo migro el cifrado legacy a Azure Key Vault?" → Plan de migración de cifrado con código C#
 
 ## Skills Utilizadas
 - `sp-to-application-migration` → cuando el objetivo es migrar lógica a C#/.NET

@@ -1,11 +1,11 @@
 -- ============================================================
 -- SCRIPT 1/4: CAPTURE BASELINE — Query Store + DMV
--- OFERTA25 Query Optimization Framework
--- Usage: Run against OFERTA25 database, save output to CSV
+-- ProjectName Query Optimization Framework
+-- Usage: Run against ProjectName database, save output to CSV
 -- Frequency: BEFORE any optimization change
 -- ============================================================
 
-USE OFERTA25;
+USE ProjectName;
 GO
 
 -- ──────────────────────────────────────────────
@@ -13,11 +13,11 @@ GO
 -- ──────────────────────────────────────────────
 IF NOT EXISTS (
     SELECT 1 FROM sys.databases
-    WHERE name = 'OFERTA25' AND is_query_store_on = 1
+    WHERE name = 'ProjectName' AND is_query_store_on = 1
 )
 BEGIN
-    ALTER DATABASE OFERTA25 SET QUERY_STORE = ON;
-    ALTER DATABASE OFERTA25 SET QUERY_STORE (
+    ALTER DATABASE ProjectName SET QUERY_STORE = ON;
+    ALTER DATABASE ProjectName SET QUERY_STORE (
         OPERATION_MODE = READ_WRITE,
         CLEANUP_POLICY = (STALE_QUERY_THRESHOLD_DAYS = 30),
         DATA_FLUSH_INTERVAL_SECONDS = 900,
@@ -27,7 +27,7 @@ BEGIN
         SIZE_BASED_CLEANUP_MODE = AUTO,
         MAX_PLANS_PER_QUERY = 200
     );
-    PRINT 'Query Store habilitado en OFERTA25';
+    PRINT 'Query Store habilitado en ProjectName';
 END
 ELSE
     PRINT 'Query Store ya estaba activo';
@@ -55,7 +55,7 @@ SELECT TOP 30
     CAST(ps.last_execution_time AS SMALLDATETIME)               AS [LastExecution],
     CAST(ps.cached_time AS SMALLDATETIME)                       AS [PlanCached]
 FROM sys.dm_exec_procedure_stats ps
-WHERE ps.database_id = DB_ID('OFERTA25')
+WHERE ps.database_id = DB_ID('ProjectName')
   AND ps.object_id IS NOT NULL
 ORDER BY ps.total_worker_time DESC;
 GO
@@ -74,7 +74,7 @@ SELECT TOP 30
     ps.total_logical_reads / ps.execution_count                 AS [AvgLogicalReads],
     ps.total_elapsed_time / 1000000.0                           AS [TotalElapsed_sec]
 FROM sys.dm_exec_procedure_stats ps
-WHERE ps.database_id = DB_ID('OFERTA25')
+WHERE ps.database_id = DB_ID('ProjectName')
   AND ps.object_id IS NOT NULL
 ORDER BY ps.total_elapsed_time DESC;
 GO
@@ -92,7 +92,7 @@ SELECT TOP 30
     ps.total_worker_time / ps.execution_count / 1000            AS [AvgCPU_ms],
     ps.total_logical_reads / ps.execution_count                 AS [AvgLogicalReads]
 FROM sys.dm_exec_procedure_stats ps
-WHERE ps.database_id = DB_ID('OFERTA25')
+WHERE ps.database_id = DB_ID('ProjectName')
   AND ps.object_id IS NOT NULL
 ORDER BY ps.execution_count DESC;
 GO
@@ -169,7 +169,7 @@ JOIN sys.dm_exec_procedure_stats ps
     ON qs.object_id = ps.object_id
     AND qs.database_id = ps.database_id
 WHERE qs.total_spills > 0
-  AND qs.database_id = DB_ID('OFERTA25')
+  AND qs.database_id = DB_ID('ProjectName')
 ORDER BY qs.total_spills DESC;
 GO
 
@@ -194,7 +194,7 @@ FROM sys.dm_exec_query_stats qs
 CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) qt
 CROSS APPLY sys.dm_exec_query_plan(qs.plan_handle) qp
 WHERE CAST(qp.query_plan AS NVARCHAR(MAX)) LIKE '%Lookup%'
-  AND qp.dbid = DB_ID('OFERTA25')
+  AND qp.dbid = DB_ID('ProjectName')
   AND qs.execution_count > 10
 ORDER BY qs.total_logical_reads DESC;
 GO
@@ -225,3 +225,4 @@ GO
 PRINT '=== BASELINE CAPTURADO ===';
 PRINT 'Guarda esta salida como baseline-' + CONVERT(VARCHAR, GETDATE(), 112) + '.csv';
 GO
+

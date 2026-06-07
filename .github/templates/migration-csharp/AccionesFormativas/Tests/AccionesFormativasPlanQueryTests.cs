@@ -1,5 +1,5 @@
 // =============================================================================
-// OFERTA25.Reporting.Tests/AccionesFormativas/AccionesFormativasPlanQueryTests.cs
+// ProjectName.Reporting.Tests/AccionesFormativas/AccionesFormativasPlanQueryTests.cs
 //
 // Tests de regresión: validan que la impl. Dapper produce el mismo resultado
 // que el SP original (golden files).
@@ -11,11 +11,11 @@ using System.Text.Json;
 using Dapper;
 using FluentAssertions;
 using Microsoft.Data.SqlClient;
-using OFERTA25.Reporting.AccionesFormativas;
-using OFERTA25.Reporting.AccionesFormativas.Acl;
+using ProjectName.Reporting.AccionesFormativas;
+using ProjectName.Reporting.AccionesFormativas.Acl;
 using Xunit;
 
-namespace OFERTA25.Reporting.Tests.AccionesFormativas;
+namespace ProjectName.Reporting.Tests.AccionesFormativas;
 
 /// <summary>
 /// PASO 1: Ejecutar una sola vez con SQL_CONNECTION_STRING apuntando a producción
@@ -45,9 +45,9 @@ public sealed class AccionesFormativasPlanQueryTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        var connStr = Environment.GetEnvironmentVariable("OFERTA25_TEST_CONN")
+        var connStr = Environment.GetEnvironmentVariable("ProjectName_TEST_CONN")
             ?? throw new InvalidOperationException(
-                "Establece OFERTA25_TEST_CONN con la connection string de test");
+                "Establece ProjectName_TEST_CONN con la connection string de test");
 
         _conn   = new SqlConnection(connStr);
         _acl    = new SpAccionesFormativasPlanQuery(_conn);
@@ -156,3 +156,4 @@ public sealed class AccionesFormativasPlanQueryTests : IAsyncLifetime
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 }
+

@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
   SCRIPT 4/4: Staged Rollout Plan & Post-Optimization Monitor
-  OFERTA25 Query Optimization Framework
+  ProjectName Query Optimization Framework
 
 .DESCRIPTION
   Orquesta el ciclo completo de optimización de un SP:
@@ -50,13 +50,13 @@ param(
     [string]$ProdServer = '',
 
     [Parameter(Mandatory=$false)]
-    [string]$DatabaseName = 'OFERTA25',
+    [string]$DatabaseName = 'ProjectName',
 
     [Parameter(Mandatory=$false)]
-    [string]$GoldenDir = '.\workspaces\OFERTA25\tests\golden',
+    [string]$GoldenDir = '.\workspaces\ProjectName\tests\golden',
 
     [Parameter(Mandatory=$false)]
-    [string]$ReportDir = '.\workspaces\OFERTA25\plans\optimization-reports',
+    [string]$ReportDir = '.\workspaces\ProjectName\plans\optimization-reports',
 
     [Parameter(Mandatory=$false)]
     [hashtable]$SpParams = @{}
@@ -314,3 +314,4 @@ $report | Out-File $reportFile -Encoding UTF8 -Force
 Write-Host "`n$('═'*60)" -ForegroundColor DarkGray
 Write-Ok "Rollout completado. Reporte: $reportFile"
 Write-Host "$('═'*60)" -ForegroundColor DarkGray
+

@@ -1,15 +1,15 @@
 // =============================================================================
-// OFERTA25.Reporting/DependencyInjection.cs
+// ProjectName.Reporting/DependencyInjection.cs
 //
 // Registro del módulo de Reporting en el contenedor de DI.
 // =============================================================================
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.FeatureManagement;
-using OFERTA25.Reporting.AccionesFormativas;
-using OFERTA25.Reporting.AccionesFormativas.Acl;
+using ProjectName.Reporting.AccionesFormativas;
+using ProjectName.Reporting.AccionesFormativas.Acl;
 
-namespace OFERTA25.Reporting;
+namespace ProjectName.Reporting;
 
 public static class DependencyInjection
 {
@@ -39,3 +39,4 @@ public static class DependencyInjection
         return services;
     }
 }
+

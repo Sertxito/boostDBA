@@ -2,7 +2,7 @@ param(
     [string]$TranscriptPath,
     [string]$SessionId,
     [string]$WorkspaceStorageRoot = (Join-Path $env:APPDATA 'Code\User\workspaceStorage'),
-    [string]$CsvPath,
+    [string]$JsonPath,
     [switch]$IncludeDebugLogs,
     [switch]$AppendHistory,
     [switch]$ShowWeeklySummary,
@@ -147,7 +147,9 @@ function Get-DailyAggregateRow {
         return $null
     }
 
-    $rows = @(Import-Csv -Path $HistoryPath)
+    $rows = @(Get-Content $HistoryPath -Encoding UTF8 | Where-Object { $_ -match '\{' } | ForEach-Object {
+        try { $_ | ConvertFrom-Json } catch { $null }
+    } | Where-Object { $null -ne $_ })
     if ($rows.Count -eq 0) {
         return $null
     }
@@ -444,18 +446,15 @@ if ($cost.has_rates) {
     Write-Output "- Total cost: $($result.cost_total)"
 }
 
-if ($CsvPath) {
-    $dir = Split-Path -Parent $CsvPath
+if ($JsonPath) {
+    $dir = Split-Path -Parent $JsonPath
     if ($dir -and -not (Test-Path $dir)) {
         New-Item -ItemType Directory -Path $dir | Out-Null
     }
-    if ($AppendHistory -and (Test-Path $CsvPath)) {
-        $result | Export-Csv -Path $CsvPath -NoTypeInformation -Append -Encoding UTF8
-    } else {
-        $result | Export-Csv -Path $CsvPath -NoTypeInformation -Encoding UTF8
-    }
+    $jsonLine = $result | ConvertTo-Json -Compress -Depth 5
+    Add-Content -Path $JsonPath -Value $jsonLine -Encoding UTF8
     Write-Output ""
-    Write-Output "CSV generado: $CsvPath"
+    Write-Output "Log JSON: $JsonPath"
 
     if ($AppendDailyAggregate) {
         $dailyPathResolved = if ($DailyAggregateCsvPath) { $DailyAggregateCsvPath } else { '.github/reports/token-usage-daily-aggregate.csv' }
@@ -476,7 +475,7 @@ if ($CsvPath) {
 
         $daily = $null
         if ($canWriteDaily) {
-            $daily = Get-DailyAggregateRow -HistoryPath $CsvPath -DateKey $todayKey
+            $daily = Get-DailyAggregateRow -HistoryPath $JsonPath -DateKey $todayKey
             $daily = Write-DailyAggregateRow -DailyPath $dailyPathResolved -DailyRow $daily
         }
 
@@ -509,7 +508,7 @@ if ($CsvPath) {
 
         $dailyForMd = $null
         if ($canWriteMdDaily) {
-            $dailyForMd = Get-DailyAggregateRow -HistoryPath $CsvPath -DateKey $todayKey
+            $dailyForMd = Get-DailyAggregateRow -HistoryPath $JsonPath -DateKey $todayKey
         }
 
         if ($null -ne $dailyForMd) {
@@ -523,8 +522,10 @@ if ($CsvPath) {
         }
     }
 
-    if ($ShowWeeklySummary -and (Test-Path $CsvPath)) {
-        $rows = @(Import-Csv -Path $CsvPath)
+    if ($ShowWeeklySummary -and (Test-Path $JsonPath)) {
+        $rows = @(Get-Content $JsonPath -Encoding UTF8 | Where-Object { $_ -match '\{' } | ForEach-Object {
+            try { $_ | ConvertFrom-Json } catch { $null }
+        } | Where-Object { $null -ne $_ })
         if ($rows.Count -gt 0) {
             $last7 = @($rows | Where-Object {
                 $_.timestamp -and ((Get-Date $_.timestamp) -ge (Get-Date).AddDays(-7))

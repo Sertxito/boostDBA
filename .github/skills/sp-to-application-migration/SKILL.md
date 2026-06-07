@@ -147,12 +147,12 @@ public class InscripcionParticipanteService
 }
 ```
 
-### Fase 4: Cifrado — Migrar de T_DECRYPT a Azure Key Vault
+### Fase 4: Cifrado — Migrar de funciones legacy a Azure Key Vault
 
-El sistema de cifrado actual (`T_DECRYPT` + `UP_V_ABRIR_LLAVE`) se reemplaza por:
+El sistema de cifrado actual (funciones/procedimientos legacy) se reemplaza por:
 
 ```csharp
-// ANTES: cada SP hace EXEC UP_V_ABRIR_LLAVE antes de operar
+// ANTES: los SPs abren contexto criptografico dentro de SQL
 // DESPUÉS: C# gestiona el ciclo de vida del cifrado
 
 // Program.cs / DI setup
@@ -198,7 +198,7 @@ public async Task<Beneficiario> GetDatosEncriptadosAsync(int id)
 
 ---
 
-## Clasificación de SPs para OFERTA25
+## Clasificación de SPs para ProjectName
 
 ### 🟢 Migración Inmediata — CRUD Puro (Dapper / EF Core)
 
@@ -236,7 +236,7 @@ gcc.*         → Gestión de centros              → Bounded Context propio
 ### 🔴 Migración Crítica — Última Fase (máxima cobertura)
 
 ```
-dbo.UP_V_ABRIR_LLAVE  → Migrar a Azure Key Vault (fase paralela)
+sp_abrir_contexto_cifrado  → Migrar a Azure Key Vault (fase paralela)
 dbo.*PLANFORMACION*   → Core del negocio (validar con stakeholders)
 dbo.*CONVOCATORIA*    → Flujo de adjudicación (máxima criticidad)
 ```
@@ -284,7 +284,7 @@ dbo.*CONVOCATORIA*    → Flujo de adjudicación (máxima criticidad)
 | **Queries complejas** | EF Core + LINQ | Entidades con relaciones |
 | **Lógica de negocio** | C# Domain Services | Reglas extraídas de SPs |
 | **Validación** | FluentValidation | Reemplaza validaciones en SP |
-| **Cifrado** | Azure Key Vault + Azure.Security | Reemplaza T_DECRYPT |
+| **Cifrado** | Azure Key Vault + Azure.Security | Reemplaza funciones legacy de cifrado |
 | **Transacciones** | IDbTransaction / UnitOfWork | Reemplaza BEGIN TRAN en SPs |
 | **Tests** | xUnit + Moq + Testcontainers | Suite de regresión |
 | **ORM** | EF Core 8+ | Write models, migrations |
@@ -324,7 +324,7 @@ dbo.*CONVOCATORIA*    → Flujo de adjudicación (máxima criticidad)
 ## Métricas de Progreso
 
 ```
-SPs totales:           6.357
+SPs totales:           N
 SPs migrados:              0   (0%)
 SPs con ACL:               0   (0%)
 SPs deprecados:            0   (0%)
@@ -333,3 +333,4 @@ Cobertura de tests:        0%
 ```
 
 Actualizar este bloque en cada sprint como indicador de avance.
+

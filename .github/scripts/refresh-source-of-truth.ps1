@@ -19,11 +19,11 @@
     Raiz del repositorio BoostDBA. Por defecto el directorio actual.
 
 .EXAMPLE
-    # Actualizar schema de OFERTA25 con un nuevo dump
-    pwsh -File .github\scripts\refresh-source-of-truth.ps1 -ProjectName OFERTA25 -SchemaPath C:\nuevo-schema
+    # Actualizar schema de ProjectName con un nuevo dump
+    pwsh -File .github\scripts\refresh-source-of-truth.ps1 -ProjectName ProjectName -SchemaPath C:\nuevo-schema
 
     # Solo regenerar manifest (sin cambio de schema)
-    pwsh -File .github\scripts\refresh-source-of-truth.ps1 -ProjectName OFERTA25
+    pwsh -File .github\scripts\refresh-source-of-truth.ps1 -ProjectName ProjectName
 #>
 
 param(
@@ -184,3 +184,4 @@ Write-Host "Proximos pasos:" -ForegroundColor Cyan
 Write-Host "  1. Revisa el diff de objetos arriba"
 Write-Host "  2. Actualiza los reportes afectados en reports/"
 Write-Host "  3. Si hay cambios en tablas criticas, ejecuta el Change Impact Assessor"
+

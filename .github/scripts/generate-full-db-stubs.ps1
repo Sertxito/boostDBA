@@ -3,7 +3,7 @@ param(
     [string]$ClassificationCsv,
     [Parameter(Mandatory = $true)]
     [string]$SchemaFile,
-    [string]$OutDir = "workspaces/OFERTA25/plans/migration/full-db-stubs",
+    [string]$OutDir = "workspaces/ProjectName/plans/migration/full-db-stubs",
     [ValidateSet("Wave-1", "Wave-2", "Wave-3", "Wave-4", "All")]
     [string]$Wave = "All"
 )
@@ -139,7 +139,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OFERTA25.Migration.$pascalSchema;
+namespace ProjectName.Migration.$pascalSchema;
 
 public interface $contractName
 {
@@ -156,7 +156,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
 
-namespace OFERTA25.Migration.$pascalSchema;
+namespace ProjectName.Migration.$pascalSchema;
 
 internal sealed class Sp$pascalProc : $contractName
 {
@@ -251,3 +251,4 @@ Write-Host "Total errors: $($errors.Count)"
 Write-Host "Manifest: $manifestPath"
 Write-Host "Errors: $errorsPath"
 Write-Host "Summary: $summaryPath"
+

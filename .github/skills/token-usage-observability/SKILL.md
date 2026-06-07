@@ -48,7 +48,7 @@ MD se commitea ✅
 .\.github\scripts\setup-token-hook.ps1
 ```
 
-Después de esto: **Cada commit que toque token-usage-history.csv actualizará el MD automáticamente**
+Después de esto: **Cada commit actualizará el MD automáticamente**
 
 ## Uso rapido
 ```powershell
@@ -56,66 +56,44 @@ Después de esto: **Cada commit que toque token-usage-history.csv actualizará e
 powershell -ExecutionPolicy Bypass -File .github/scripts/token-usage-report.ps1
 
 # 2) Sesion concreta
-powershell -ExecutionPolicy Bypass -File .github/scripts/token-usage-report.ps1 -SessionId "5d329c67-4503-4c77-a945-504b43c5720b"
+powershell -ExecutionPolicy Bypass -File .github/scripts/token-usage-report.ps1 -SessionId "<id>"
 
 # 3) Transcript explicito
 powershell -ExecutionPolicy Bypass -File .github/scripts/token-usage-report.ps1 -TranscriptPath "C:\...\transcripts\<id>.jsonl"
 
-# 4) Incluir debug logs + export CSV
-powershell -ExecutionPolicy Bypass -File .github/scripts/token-usage-report.ps1 -SessionId "<id>" -IncludeDebugLogs -CsvPath ".github/reports/token-usage.csv"
-
-# 5) Historico (append) + resumen semanal
+# 4) Con log JSON + resumen semanal
 powershell -ExecutionPolicy Bypass -File .github/scripts/token-usage-report.ps1 `
 	-IncludeDebugLogs `
-	-CsvPath ".github/reports/token-usage-history.csv" `
+	-JsonPath ".github/reports/token-usage-history.json" `
 	-AppendHistory `
 	-ShowWeeklySummary
 
-# 6) Estimacion de coste por modelo (si defines tarifas por 1M tokens)
+# 5) Con estimacion de coste
 powershell -ExecutionPolicy Bypass -File .github/scripts/token-usage-report.ps1 `
 	-IncludeDebugLogs `
-	-CsvPath ".github/reports/token-usage-history.csv" `
+	-JsonPath ".github/reports/token-usage-history.json" `
 	-AppendHistory `
 	-ModelName "gpt-5.3-codex" `
 	-InputCostPer1M 5.00 `
 	-OutputCostPer1M 15.00 `
 	-CostBasis estimated_total_tokens_max
 
-# 7) Acumulado diario append-only (fecha + uso total del dia)
+# 6) Acumulado diario en tabla Markdown
 powershell -ExecutionPolicy Bypass -File .github/scripts/token-usage-report.ps1 `
 	-IncludeDebugLogs `
-	-CsvPath ".github/reports/token-usage-history.csv" `
-	-AppendHistory `
-	-AppendDailyAggregate `
-	-DailyAggregateCsvPath ".github/reports/token-usage-daily-aggregate.csv"
-
-# 8) Acumulado diario en tabla Markdown (mas legible para seguimiento)
-powershell -ExecutionPolicy Bypass -File .github/scripts/token-usage-report.ps1 `
-	-IncludeDebugLogs `
-	-CsvPath ".github/reports/token-usage-history.csv" `
+	-JsonPath ".github/reports/token-usage-history.json" `
 	-AppendHistory `
 	-AppendDailyAggregateMarkdown `
 	-DailyAggregateMdPath ".github/reports/token-usage-daily-aggregate.md"
 
-# 9) Cierre diario automatico: solo una fila final del dia (a partir de hora de corte)
-powershell -ExecutionPolicy Bypass -File .github/scripts/token-usage-report.ps1 `
-	-IncludeDebugLogs `
-	-CsvPath ".github/reports/token-usage-history.csv" `
-	-AppendHistory `
-	-AppendDailyAggregateMarkdown `
-	-DailyAggregateMdPath ".github/reports/token-usage-daily-aggregate.md" `
-	-DailyCloseMode `
-	-DailyCloseTime "23:55"
-
-# 10) Flujo simple para equipo (sin scheduler): comando unico de cierre
+# 7) Flujo simple para equipo (un solo comando)
 powershell -ExecutionPolicy Bypass -File .github/scripts/token-daily-close.ps1
 
-# 11) Flujo simple con parametros opcionales
+# 8) Con modelo y costes custom
 powershell -ExecutionPolicy Bypass -File .github/scripts/token-daily-close.ps1 `
 	-ModelName "gpt-5.3-codex" `
 	-InputCostPer1M 5 `
-	-OutputCostPer1M 15 `
-	-DailyCloseTime "23:55"
+	-OutputCostPer1M 15
 ```
 
 ## Salida esperada
@@ -124,13 +102,11 @@ powershell -ExecutionPolicy Bypass -File .github/scripts/token-daily-close.ps1 `
 - Desglose por fase
 - Desglose por origen (User/Assistant/Tool)
 - Contadores exactos si los logs los exponen
-- CSV opcional
-- Historico CSV (append)
+- Log JSON local (append, gitignored)
 - Resumen semanal (runs/tokens/coste)
 - Estimacion de coste configurable por modelo
 - Acumulado diario append-only (una nueva fila por ejecucion con el total del dia)
 - Acumulado diario en Markdown (tabla append-only)
-- Modo cierre diario: evita duplicados y guarda solo al llegar la hora de corte
 - Wrapper de cierre diario para uso simple dentro de Boost (un solo comando)
 
 ## Notas

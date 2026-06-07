@@ -1,10 +1,10 @@
 // =============================================================================
-// OFERTA25.Reporting/AccionesFormativas/IAccionesFormativasPlanQuery.cs
+// ProjectName.Reporting/AccionesFormativas/IAccionesFormativasPlanQuery.cs
 //
 // Contrato de dominio — independiente de la implementación (SP o Dapper)
 // =============================================================================
 
-namespace OFERTA25.Reporting.AccionesFormativas;
+namespace ProjectName.Reporting.AccionesFormativas;
 
 /// <summary>
 /// Obtiene el detalle de acciones formativas de un expediente
@@ -19,3 +19,4 @@ public interface IAccionesFormativasPlanQuery
         string codExpediente,
         CancellationToken ct = default);
 }
+

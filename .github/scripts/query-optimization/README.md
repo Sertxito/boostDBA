@@ -1,4 +1,4 @@
-# Query Optimization Framework — OFERTA25
+# Query Optimization Framework — ProjectName
 
 **Scope:** 6.554 SPs | SQL Server 2017 | .NET 8 Dapper/EF stack  
 **Objetivo:** Reducir tiempo de respuesta y consumo de recursos sin cambios funcionales
@@ -33,7 +33,7 @@ cd c:\repo\BoostDBA
   -ServerInstance 'prod-db'
 
 # 2. Revisa recomendaciones de índices en SSMS
-#    → Abre 02-index-recommendations.sql y ejecuta en OFERTA25
+#    → Abre 02-index-recommendations.sql y ejecuta en ProjectName
 
 # 3. Aplica el cambio en DEV primero
 
@@ -55,7 +55,7 @@ cd c:\repo\BoostDBA
 ## Scripts en Detalle
 
 ### `01-capture-baseline.sql`
-Ejecutar en SSMS contra OFERTA25. Captura:
+Ejecutar en SSMS contra ProjectName. Captura:
 - Top 30 SPs por CPU, Elapsed y Frecuencia
 - Planes regresionados (Query Store)
 - Wait stats (PAGEIO_LATCH, LCK_M, etc.)
@@ -88,7 +88,7 @@ Compara outputs funcionales de un SP:
 | `validate` | Ejecuta SP actual, compara vs golden. Exit 0=pass, 1=fail |
 | `report` | Muestra info del golden file sin ejecutar |
 
-**Salida golden:** `workspaces/OFERTA25/tests/golden/{sp_name}.golden.json`
+**Salida golden:** `workspaces/ProjectName/tests/golden/{sp_name}.golden.json`
 
 Detecta:
 - Schema changes (columnas añadidas/quitadas)
@@ -218,7 +218,7 @@ DROP INDEX [IX_nombre] ON schema.Tabla;
 
 -- Rollback de SP rewrite
 -- Restaurar desde fuente de verdad:
--- workspaces/OFERTA25/fuente-de-verdad/schema/db.sql
+-- workspaces/ProjectName/fuente-de-verdad/schema/db.sql
 
 -- Rollback de Query Store plan forzado
 EXEC sys.sp_query_store_unforce_plan @query_id = 1234, @plan_id = 5678;
@@ -239,16 +239,17 @@ EXEC sys.sp_query_store_unforce_plan @query_id = 1234, @plan_id = 5678;
 ├── 04-staged-rollout.ps1            ← Orquestador completo
 └── README.md                        ← Este archivo
 
-workspaces/OFERTA25/tests/golden/
+workspaces/ProjectName/tests/golden/
 └── {schema}_{sp_name}.golden.json   ← Golden files (no comitear sin review)
 
-workspaces/OFERTA25/plans/optimization-reports/
+workspaces/ProjectName/plans/optimization-reports/
 └── {sp_name}-rollout-{date}.md      ← Reporte de cada optimización
 ```
 
 ---
 
 **Próximos SPs priorizados (Wave-1, mayor frecuencia):**  
-Obtener de `workspaces/OFERTA25/plans/full-db-sp-classification.csv`  
+Obtener de `workspaces/ProjectName/plans/full-db-sp-classification.csv`  
 Filtrar: `Category = CRUD AND Wave = Wave-1`  
 Ordenar por: frecuencia real (Phase 2 DMV → `phase2-top-sps-frequency.csv`)
+

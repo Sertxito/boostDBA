@@ -1,12 +1,12 @@
 // =============================================================================
-// OFERTA25.Reporting/AccionesFormativas/AccionFormativaPlanDto.cs
+// ProjectName.Reporting/AccionesFormativas/AccionFormativaPlanDto.cs
 //
 // DTO generado desde bi.AccionesFormativasPlanFormacion_S
 // Autor SP original: Oscar Quero (12/05/2011)
 // Migrado: 2026-06-07
 // =============================================================================
 
-namespace OFERTA25.Reporting.AccionesFormativas;
+namespace ProjectName.Reporting.AccionesFormativas;
 
 /// <summary>
 /// Informe 8: Informe de AAFF en planes presentados (detalle).
@@ -63,3 +63,4 @@ public sealed record AccionFormativaPlanDto
     public bool Anulada { get; init; }               // AF.B_ANULADA
     public string? RazonAnulacion { get; init; }     // ANU.D_ANULACION
 }
+

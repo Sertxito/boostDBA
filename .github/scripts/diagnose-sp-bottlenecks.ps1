@@ -14,13 +14,13 @@
   SQL Server instance (e.g., 'localhost\SQLEXPRESS' or 'prod.database.windows.net')
   
 .PARAMETER DatabaseName
-  Target database (e.g., 'OFERTA25')
+  Target database (e.g., 'ProjectName')
   
 .PARAMETER OutputDir
-  Directory for reports (defaults to ./workspaces/OFERTA25/plans/)
+  Directory for reports (defaults to ./workspaces/ProjectName/plans/)
   
 .EXAMPLE
-  .\diagnose-sp-bottlenecks.ps1 -ServerInstance 'prod-db.database.windows.net' -DatabaseName 'OFERTA25'
+  .\diagnose-sp-bottlenecks.ps1 -ServerInstance 'prod-db.database.windows.net' -DatabaseName 'ProjectName'
   
 .NOTES
   Requires: SQL Server Management Objects (SMO) or SqlServer module
@@ -32,10 +32,10 @@ param(
   [string]$ServerInstance,
   
   [Parameter(Mandatory=$false)]
-  [string]$DatabaseName = 'OFERTA25',
+  [string]$DatabaseName = 'ProjectName',
   
   [Parameter(Mandatory=$false)]
-  [string]$OutputDir = '.\workspaces\OFERTA25\plans'
+  [string]$OutputDir = '.\workspaces\ProjectName\plans'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -301,3 +301,4 @@ Write-Host "✅ Summary report exported to PHASE2-SUMMARY.md" -ForegroundColor G
 
 Write-Host "`n✅ Phase 2 validation complete!" -ForegroundColor Green
 Write-Host "📂 Reports available in: $OutputDir" -ForegroundColor Green
+
