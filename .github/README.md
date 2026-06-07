@@ -394,6 +394,7 @@ BoostDBA/
 ├── scripts/                             # Scripts de automatización
 │   ├── run-dba360-wizard.ps1           # ★ Punto de entrada: crea workspaces/<Proyecto>/
 │   ├── bootstrap-source-of-truth.ps1   # Crea estructura fuente-de-verdad/ y manifest.json
+│   ├── refresh-source-of-truth.ps1     # Actualiza schema existente + diff de objetos + historial
 │   └── security-preflight.ps1          # Preflight: detecta credenciales, secretos, rutas sensibles
 │
 ├── .gitignore                           # Protege workspaces/ e input/ — data de cliente nunca a git
@@ -440,6 +441,39 @@ BoostDBA/
         ├── plans/                   # Roadmaps y planes de acción
         └── logs/                    # Trazabilidad de sesiones
 ```
+
+---
+
+### 1b. Actualizar un workspace existente (cuando cambia el schema)
+
+Cuando el equipo despliega cambios a la base de datos, actualiza la fuente de verdad sin perder reportes ni planes:
+
+```powershell
+# Reingesta el nuevo schema y recalcula el inventario
+pwsh -File .github\scripts\refresh-source-of-truth.ps1 -ProjectName "MiProyecto" -SchemaPath "C:\nuevo-dump"
+
+# Solo regenerar manifest (sin schema nuevo)
+pwsh -File .github\scripts\refresh-source-of-truth.ps1 -ProjectName "MiProyecto"
+```
+
+**Qué hace el refresh:**
+- Reemplaza los archivos en `fuente-de-verdad/schema/` con el nuevo dump
+- Recalcula el inventario (tablas, SPs, funciones, índices, FKs)
+- Muestra un **diff** vs. la ingesta anterior: cuántos objetos se añadieron o eliminaron
+- Actualiza `manifest.json` con `updatedAt` y `refreshCount`
+- Append a `ingestion-log.json` (historial completo de ingestas)
+- Re-ejecuta el preflight de seguridad sobre el nuevo schema
+- **No borra** reportes, planes ni logs existentes
+
+```
+Ejemplo de diff:
+  tables    :     +3  (antes: 1787, ahora: 1790)
+  procs     :    +12  (antes: 6357, ahora: 6369)
+  functions :      0  (sin cambios)
+  indexes   :     -1  (antes: 1301, ahora: 1300)
+```
+
+> **Cuándo actualizar:** tras cada despliegue de schema a producción, o cuando el equipo de DBA pide que los reportes reflejen el estado actual.
 
 ---
 
