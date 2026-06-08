@@ -158,16 +158,16 @@ No se define un script wizard obligatorio. El flujo se ejecuta desde onboarding 
 - **00-PLAN-ACCION-90-DIAS.md** — Master plan: waves, milestones, timeline completo
 - **01-ANALISIS-SPOF-CRIPTO.md** — Análisis SPOF: circuit-breaker, credential management
 - **02-bi-CLASIFICACION-SCHEMA.md** — BI schema mapping + matriz de complejidad
-- **03-CHECKLIST-ACCIONES-SEMANA1.md** — Week 1 blockers: qué hacer día 1-5
+- **03-LISTA-VERIFICACION-ACCIONES-SEMANA1.md** — Bloqueadores Semana 1: qué hacer día 1-5
 - **04-CLASIFICACION-COMPLETA-SPS.md** — Inventario 6,357 SPs por criticidad
 - **05-DIAGNOSTICO-COMPLETO.md** — Full assessment: 360 view de todos los hallazgos
 - **06-DIAGNOSTICO-CUELLOS-BOTELLA.md** — Performance diagnosis: DMVs + query plans
-- **07-EJECUTIVO-1PAGER.md** — One-pager para liderazgo: decisiones + ROI
+- **07-EJECUTIVO-UNA-PAGINA.md** — Resumen de una página para liderazgo: decisiones + ROI
 - **08-MATRIZ-IMPACTO-MULTIDOMINIO.md** — Cross-domain impact matrix
 - **09-PLAN-MIGRACION-CSHARP.md** — C#/.NET migration: Strangler Fig, DDD patterns
-- **10-PLAYBOOK-REMEDIACION.md** — Operational runbooks + scripts
+- **10-MANUAL-REMEDIACION.md** — Manuales operacionales + scripts
 - **11-RESUMEN-CUELLOS-BOTELLA-SCHEMA.md** — Bottleneck summary per schema
-- **12-ROADMAP-MITIGACION.md** — Roadmap 6-12 meses post-Wave 0
+- **12-HOJA-RUTA-MITIGACION.md** — Hoja de ruta 6-12 meses post-Wave 0
 
 **REGLA:** Generar EN ESTE ORDEN. Cada plan es entrada para el siguiente.
 
@@ -176,14 +176,14 @@ No se define un script wizard obligatorio. El flujo se ejecuta desde onboarding 
 **El Orquestador DEBE generar reportes numerados en flujo de lectura coherente, no aleatorio:**
 
 ### FASE 1: Contexto & Entrada (00-02)
-- **00-RESUMEN-EJECUTIVO.md** — 1-pager: hallazgos críticos, ROI, decisiones requeridas
-- **01-OVERVIEW-DEPENDENCIAS.md** — Arquitectura (tablas, FKs, SPs, criticidad)
-- **02-PLAN-ACCION.md** — Qué hacer: waves, timeline, roadmap
+- **00-RESUMEN-EJECUTIVO.md** — Resumen de una página: hallazgos críticos, ROI, decisiones requeridas
+- **01-DESCRIPCION-GENERAL-DEPENDENCIAS.md** — Arquitectura (tablas, claves foráneas, procedimientos almacenados, criticidad)
+- **02-PLAN-ACCION.md** — Qué hacer: olas, línea temporal, hoja de ruta
 
 ### FASE 2: Riesgos Prioritarios (03-06)
 - **03-CADENA-CRIPTO-CRITICA.md** — Riesgo #1: SPOF, bloqueadores (T_DECRYPT, OPEN SYMMETRIC KEY)
 - **04-DOMINIOS-LOGICA-NEGOCIO.md** — Lógica de negocio: 5+ dominios extraídos de SPs
-- **05-EXTRACCION-LOGICA-LEGACY.md** — SPs críticas con lógica oculta a extraer
+- **04-EXTRACCION-LOGICA-HEREDADA.md** — Procedimientos almacenados críticos con lógica oculta a extraer
 - **06-OPORTUNIDADES-MODERNIZACION.md** — Modernización: Strangler Fig, waves, timeline
 
 ### FASE 3: Análisis Técnicos Prioritarios (07-13)
@@ -205,8 +205,8 @@ No se define un script wizard obligatorio. El flujo se ejecuta desde onboarding 
 - **20-RESUMEN-EJECUTIVO-AUDITORIA-SEGURIDAD.md** — Security 1-pager
 - **21-RESUMEN-IMPACTO-EJECUTIVO.md** — Conclusión + próximos pasos
 
-### FASE 5: HITL Gate (22)
-- **22-HITL-GATE-FINAL.md** — ⚠️ COMPUERTA DE APROBACIÓN HUMANA: checklist de completitud (9 artefactos, 22 reportes, 13 planes, 5 docx), security gates, métricas, y 3 opciones de decisión
+### FASE 5: Compuerta de Aprobación Humana (22)
+- **22-COMPUERTA-APROBACION-HUMANA-OFERTA25-COMPLETO.md** — ⚠️ COMPUERTA DE APROBACIÓN HUMANA: lista de verificación de completitud (9 artefactos, 22 reportes, 13 planes, 5 documentos), compuertas de seguridad, métricas, y 3 opciones de decisión
 
 **REGLA:** Generar EN ESTE ORDEN. Cada reporte numerado (00-22) es una función del flujo narrativo, no del orden generado por los agentes especializados. El reporte 22 (HITL Gate) es el STOP obligatorio antes de cerrar el proyecto.
 
