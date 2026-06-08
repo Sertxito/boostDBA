@@ -6,6 +6,31 @@
 
 Boost DBA 360 es un **sistema agentico de IA** para operar, diagnosticar, optimizar y modernizar bases de datos SQL Server sin exfiltrar información sensible. Combina 17 agentes especializados con 17 skills reutilizables y una capa de conocimiento anti-alucinación para responder las preguntas clave de un DBA: Combina flujos de trabajo agenticos con habilidades especializadas para responder las preguntas clave de rendimiento, riesgo y evolución:
 
+## Modo de Operación Recomendado
+
+Para el día a día no hace falta activar todos los agentes.
+
+Primera ejecución de cada proyecto: obligatoriamente en Modo Full.
+Ejecuciones posteriores: Modo Lean por defecto + activación por triggers.
+
+### Modo Lean (recomendado)
+
+Usar solo:
+
+- Orquestador DBA 360
+- Analizador de Dependencias de BD
+- Exportador de Informes Ejecutivos
+
+Los demás agentes se activan solo por necesidad real (trigger).
+
+### Modo Full
+
+Usar todos los agentes especializados en auditorías amplias, programas de modernización o evaluaciones multi-dominio.
+
+### Regla práctica
+
+Si no hay trigger claro, permanecer en Modo Lean.
+
 - **"Quiero arrancar y analizarlo todo desde cero"** → DBA 360 Orchestrator ← *empieza aquí*
 - **"¿Qué se romperá si cambiamos esto?"** → Change Impact Assessor
 - **"¿Cuáles procedimientos son realmente críticos?"** → DB Dependency Analyzer

@@ -28,6 +28,14 @@ Actuar como puente entre hallazgos técnicos de base de datos y stakeholders de 
 
 ## Flujo de Trabajo
 
+### Precondiciones obligatorias (hard stop)
+Antes de exportar Word, deben cumplirse todas:
+1. Fuente de verdad completa en `workspaces/<Proyecto>/fuente-de-verdad/` (manifest, schema, inventarios)
+2. Reportes y planes del proyecto ya generados en `workspaces/<Proyecto>/reports/` y `workspaces/<Proyecto>/plans/`
+3. Aprobacion HITL explicita del usuario para pasar a exportacion
+
+Si cualquiera falla, este agente no exporta `.docx`.
+
 ### Paso 1: Leer y entender el diagnóstico
 ```
 1. Cargar workspaces/<Proyecto>/README.md
@@ -110,6 +118,8 @@ Técnico -> Impacto -> Decisión
 ```
 
 ### Paso 5: Exportar a Word (salida final)
+
+Este paso solo se ejecuta si las precondiciones obligatorias estan en estado OK.
 
 **Antes de exportar — verificación de diagramas (automática):**
 

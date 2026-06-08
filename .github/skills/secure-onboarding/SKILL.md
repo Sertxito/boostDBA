@@ -8,6 +8,12 @@ description: 'Skill para arrancar un proyecto de BBDD desde cero con seguridad-f
 ## Proposito
 Preparar una sesion DBA completa sin exponer negocio, creando una fuente de verdad local reutilizable para no depender de conexiones continuas a la base de datos origen.
 
+## Regla Operativa (OBLIGATORIA)
+
+El onboarding es el flujo maestro de arranque: ejecuta todo el pipeline tecnico de forma autonoma y llega hasta dejar listos reportes y planes para revision.
+
+Punto de parada obligatorio: antes de generar los `.docx`, el proceso se detiene para revision humana de `reports/` y `plans/`.
+
 ## Entradas
 - Nombre del proyecto DBA
 - Uno de estos origenes:
@@ -19,6 +25,8 @@ Preparar una sesion DBA completa sin exponer negocio, creando una fuente de verd
 - Estructura local en `workspaces/<Proyecto>/` dentro del repo
 - **Fuente de verdad completa** con todos los objetos de la BD
 - Manifest de configuración y preflight PASS/FAIL
+- Reportes tecnicos y planes en `workspaces/<Proyecto>/reports` y `workspaces/<Proyecto>/plans`
+- Entregables Word en `workspaces/<Proyecto>/entrega/*.docx` (solo tras aprobacion humana)
 
 ## Fuente de Verdad — Estructura Completa (OBLIGATORIO)
 
@@ -43,6 +51,14 @@ workspaces/<Proyecto>/
 ```
 
 ## Pasos de Bootstrap (Orden Obligatorio)
+
+### Paso 0: Security Preflight (PRIMERO)
+```powershell
+pwsh -File .github/scripts/security-preflight.ps1
+if ($LASTEXITCODE -ne 0) { Write-Error 'Preflight de seguridad FAIL. Sanear antes de continuar.'; exit 1 }
+```
+
+Este gate siempre corre primero.
 
 ### Paso 1: Schema y objetos base
 ```powershell
@@ -93,3 +109,43 @@ $p = "workspaces/NombreProyecto"
 ```
 
 **Si algún fichero falta, ejecutar el paso correspondiente antes de continuar.**
+
+### Paso 5: Orquestacion de analisis tecnicos
+
+Con la fuente de verdad y catálogos completos, el onboarding dispara la orquestación de análisis DBA (dependencias, impacto, rendimiento, seguridad/fiabilidad, modernización) y genera los artefactos en `reports/` y `plans/` del proyecto.
+
+Regla: cualquier hallazgo debe estar sustentado por lectura del SQL real en `schema/db.sql`.
+
+### Paso 6: STOP de control humano (HITL obligatorio)
+
+Antes de crear los `.docx`, el onboarding debe parar y solicitar revisión explícita del usuario antes de cualquier acción adicional.
+
+Checklist de revision:
+- `workspaces/<Proyecto>/fuente-de-verdad/manifest.json`
+- `workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql`
+- `workspaces/<Proyecto>/fuente-de-verdad/tables-by-schema.json`
+- `workspaces/<Proyecto>/fuente-de-verdad/procs-by-schema.json`
+- `workspaces/<Proyecto>/fuente-de-verdad/views-by-schema.json`
+- `workspaces/<Proyecto>/fuente-de-verdad/functions-by-schema.json`
+- `workspaces/<Proyecto>/reports/`
+- `workspaces/<Proyecto>/plans/`
+
+Con aprobación explícita, se ejecuta el Paso 7 para generar Word.
+
+Sin esta aprobación, no se continúa a fases posteriores.
+
+### Paso 7: Generacion de entregables Word
+
+Precondicion obligatoria:
+- Fuente de verdad completa validada
+- Reportes y planes generados
+- Aprobacion HITL del Paso 6
+
+El onboarding invoca el flujo de entrega para generar documentos `.docx` en `workspaces/<Proyecto>/entrega/`.
+
+Salidas minimas esperadas:
+- `<Proyecto>-INFORME-CLIENTE.docx`
+- `<Proyecto>-INFORME-FUNCIONAL.docx`
+- `<Proyecto>-ASSESSMENT.docx`
+- `<Proyecto>-INFORME-TECHLEAD.docx`
+- `<Proyecto>-INFORME-DBA.docx`
