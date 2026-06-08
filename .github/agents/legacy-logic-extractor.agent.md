@@ -23,23 +23,33 @@ Descubre y extrae lógica de negocio dispersa en stored procedures, documentando
 
 **NUNCA inferir reglas de negocio por el nombre del SP o su descripción de encabezado. SIEMPRE leer el cuerpo SQL completo.**
 
-### Paso 0: Descubrir el proyecto activo
+### Paso 0: Descubrir el proyecto activo y verificar catálogos
 ```powershell
-# El proyecto activo es el directorio que existe bajo workspaces/
 $proyecto = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
 $schemaPath = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
-$csvPath = "workspaces/$proyecto/plans/full-db-sp-classification.csv"
-Write-Host "Proyecto: $proyecto — Schema: $schemaPath"
-```
-Si hay más de un proyecto en `workspaces/`, preguntar al usuario cuál analizar.
+$csvPath    = "workspaces/$proyecto/plans/full-db-sp-classification.csv"
+$rulesDir   = "workspaces/$proyecto/reports/business-rules"
 
-### Paso 1: Extracción masiva automática (para grupos de SPs)
-```powershell
-# Para los 339 Critical SPs, ejecutar el script de extracción masiva:
-pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Critical
-# Resultado en: workspaces/$proyecto/reports/business-rules/critical-rules-catalog.md
+# OBLIGATORIO: si los catálogos no existen, generarlos antes de cualquier análisis
+if (-not (Test-Path "$rulesDir/critical-rules-catalog.md")) {
+    Write-Host "Generando catálogo Critical..."
+    pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Critical
+}
+if (-not (Test-Path "$rulesDir/complex-rules-catalog.md")) {
+    Write-Host "Generando catálogo Complex..."
+    pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Complex
+}
+Write-Host "Catálogos disponibles en: $rulesDir"
 ```
-El catálogo resultante tiene el cuerpo SQL de cada SP con patrones detectados. Usarlo como base.
+Todos los catálogos viven en `workspaces/$proyecto/` — nunca en `.github/`.
+
+### Paso 1: Usar los catálogos como base del análisis
+Los catálogos en `$rulesDir` ya tienen patrones detectados en todos los SPs Critical y Complex.
+Leerlos primero antes de abrir el schema directamente:
+```powershell
+# Ver SPs con más patrones (mayor lógica de negocio)
+Get-Content "$rulesDir/critical-rules-catalog.md" | Select-String "^| ``" | Select-Object -First 20
+```
 
 ### Paso 2: Lectura profunda individual (para SPs específicos)
 ```powershell

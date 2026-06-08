@@ -24,19 +24,22 @@ Crea "la documentación que nadie escribió" analizando stored procedures, tabla
 
 **La documentación se genera leyendo el código SQL real, no infiriendo por nombres ni metadatos de catálogo.**
 
-### Paso 0: Descubrir el proyecto activo
+### Paso 0: Descubrir el proyecto activo y verificar catálogos
 ```powershell
 $proyecto = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
 $schemaPath = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
-$csvPath = "workspaces/$proyecto/plans/full-db-sp-classification.csv"
-```
+$csvPath    = "workspaces/$proyecto/plans/full-db-sp-classification.csv"
+$rulesDir   = "workspaces/$proyecto/reports/business-rules"
 
-### Para extracción masiva (grupos de SPs)
-```powershell
-# Genera catálogo completo de todos los Critical con patrones detectados
-pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Critical
-# Resultado: workspaces/$proyecto/reports/business-rules/critical-rules-catalog.md
+# OBLIGATORIO: si los catálogos no existen, generarlos antes de documentar
+if (-not (Test-Path "$rulesDir/critical-rules-catalog.md")) {
+    pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Critical
+}
+if (-not (Test-Path "$rulesDir/complex-rules-catalog.md")) {
+    pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Complex
+}
 ```
+Todos los artefactos de análisis viven en `workspaces/$proyecto/` — nunca en `.github/`.
 
 ### Para documentación individual de un SP
 ```powershell

@@ -11,7 +11,19 @@ tools: [vscode/installExtension, vscode/memory, vscode/newWorkspace, vscode/reso
 
 **Toda optimización comienza leyendo el código SQL real del SP o consulta, no el plan estimado únicamente.**
 
-Cuando el SP tiene fuente local disponible (`fuente-de-verdad/schema/db.sql`):
+### Paso 0: Descubrir el proyecto y verificar catálogos
+```powershell
+$proyecto   = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
+$schemaPath = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
+$rulesDir   = "workspaces/$proyecto/reports/business-rules"
+
+# Los catálogos ya identifican SPs con CursorAntiPattern y SQLDinamicoOpaco
+# (los más costosos de rendimiento). Usarlos antes de ir al schema.
+if (-not (Test-Path "$rulesDir/critical-rules-catalog.md")) {
+    pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Critical
+}
+```
+Todos los artefactos de análisis viven en `workspaces/$proyecto/` — nunca en `.github/`.
 ```powershell
 Select-String -Path "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" -Pattern "NOMBRE_SP" | Select-Object -First 3 LineNumber
 ```

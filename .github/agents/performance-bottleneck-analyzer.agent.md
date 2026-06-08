@@ -11,7 +11,19 @@ tools: [vscode/installExtension, vscode/memory, vscode/newWorkspace, vscode/reso
 
 **Cuando el código SQL está disponible localmente, leerlo es el primer paso antes de interpretar DMVs o Query Store.**
 
-Para cada SP identificado como offender:
+### Paso 0: Descubrir el proyecto y verificar catálogos
+```powershell
+$proyecto   = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
+$schemaPath = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
+$rulesDir   = "workspaces/$proyecto/reports/business-rules"
+
+# Los catálogos ya tienen identificados SPs con CursorAntiPattern, SQLDinamicoOpaco
+# y TransaccionLarga. Usarlos como punto de partida del diagnóstico.
+if (-not (Test-Path "$rulesDir/critical-rules-catalog.md")) {
+    pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Critical
+}
+```
+Todos los artefactos de análisis viven en `workspaces/$proyecto/` — nunca en `.github/`.
 ```powershell
 Select-String -Path "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" -Pattern "NOMBRE_SP" | Select-Object -First 3 LineNumber
 ```

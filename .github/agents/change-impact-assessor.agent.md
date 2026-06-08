@@ -23,11 +23,21 @@ Antes de tocar producción, analiza qué se romperá, cuáles pruebas ejecutar, 
 
 **El impacto real se evalúa leyendo el código SQL de los SPs afectados, no estimando por el nombre o descripción.**
 
-### Paso 0: Descubrir el proyecto activo
+### Paso 0: Descubrir el proyecto activo y verificar catálogos
 ```powershell
 $proyecto = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
 $schemaPath = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
+$rulesDir   = "workspaces/$proyecto/reports/business-rules"
+
+# OBLIGATORIO: si los catálogos no existen, generarlos antes de evaluar impacto
+if (-not (Test-Path "$rulesDir/critical-rules-catalog.md")) {
+    pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Critical
+}
+if (-not (Test-Path "$rulesDir/complex-rules-catalog.md")) {
+    pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Complex
+}
 ```
+Todos los catálogos y resultados de análisis viven en `workspaces/$proyecto/` — nunca en `.github/`.
 
 ### Para cada objeto afectado por el cambio propuesto:
 ```powershell

@@ -11,7 +11,21 @@ tools: [vscode/installExtension, vscode/memory, vscode/newWorkspace, vscode/reso
 
 **Cualquier hallazgo sobre lógica de negocio, dependencias o impacto requiere evidencia del código fuente SQL, no inferencia por nombre o descripción.**
 
-Cuando existe `workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql`, este es el schema canónico. Antes de documentar cualquier SP:
+### Paso 0: Descubrir el proyecto y verificar catálogos (SIEMPRE PRIMERO)
+```powershell
+$proyecto   = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
+$schemaPath = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
+$rulesDir   = "workspaces/$proyecto/reports/business-rules"
+
+# OBLIGATORIO antes de cualquier análisis
+if (-not (Test-Path "$rulesDir/critical-rules-catalog.md")) {
+    pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Critical
+}
+if (-not (Test-Path "$rulesDir/complex-rules-catalog.md")) {
+    pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Complex
+}
+```
+Todos los artefactos de análisis viven en `workspaces/$proyecto/` — nunca en `.github/`.
 ```powershell
 # Localizar y leer el cuerpo real
 Select-String -Path "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" -Pattern "NOMBRE_SP" | Select-Object -First 3 LineNumber

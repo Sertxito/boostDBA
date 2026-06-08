@@ -35,18 +35,24 @@ Orquestador maestro que coordina el viaje completo de DB Boost: analizando depen
 
 **Toda decisión de modernización se basa en leer el código real de los SPs, no en nombres, clasificaciones o metadata. Sin código leído = sin decisión.**
 
-### Paso 0: Descubrir el proyecto activo y cargar catálogo
+### Paso 0: Descubrir el proyecto activo y cargar catálogos
 ```powershell
-$proyecto = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
-$schemaPath = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
-$csvPath = "workspaces/$proyecto/plans/full-db-sp-classification.csv"
-$catalogPath = "workspaces/$proyecto/reports/business-rules/critical-rules-catalog.md"
+$proyecto    = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
+$schemaPath  = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
+$csvPath     = "workspaces/$proyecto/plans/full-db-sp-classification.csv"
+$rulesDir    = "workspaces/$proyecto/reports/business-rules"
 
-# Si el catálogo no existe, generarlo primero:
-if (-not (Test-Path $catalogPath)) {
+# OBLIGATORIO: si los catálogos no existen, generarlos antes de planificar migración
+if (-not (Test-Path "$rulesDir/critical-rules-catalog.md")) {
+    Write-Host "Generando catálogo Critical..."
     pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Critical
 }
+if (-not (Test-Path "$rulesDir/complex-rules-catalog.md")) {
+    Write-Host "Generando catálogo Complex..."
+    pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Complex
+}
 ```
+Todos los artefactos del proyecto viven en `workspaces/$proyecto/` — nunca en `.github/`.
 
 ### Para cada SP a migrar:
 ```powershell
