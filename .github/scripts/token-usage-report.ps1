@@ -208,6 +208,99 @@ function Get-DailyAggregateRow {
     return $dailyRow
 }
 
+function Get-AllDailyAggregateRows {
+    param([string]$HistoryPath)
+
+    if (-not (Test-Path $HistoryPath)) {
+        return @()
+    }
+
+    $rows = @(Get-Content $HistoryPath -Encoding UTF8 | Where-Object { $_ -match '\{' } | ForEach-Object {
+        try { $_ | ConvertFrom-Json } catch { $null }
+    } | Where-Object { $null -ne $_ -and $_.timestamp })
+
+    if ($rows.Count -eq 0) {
+        return @()
+    }
+
+    $ordered = @($rows | Sort-Object { Get-Date $_.timestamp })
+
+    # Rows are cumulative snapshots per session; compute deltas to avoid double counting.
+    $prevBySession = @{}
+    $deltaRows = @()
+
+    foreach ($r in $ordered) {
+        $sid = [string]$r.session_id
+        if ([string]::IsNullOrWhiteSpace($sid)) {
+            $sid = 'unknown-session'
+        }
+
+        $curVisible = Convert-ToDoubleSafe -Value $r.estimated_visible_tokens
+        $curMin = Convert-ToDoubleSafe -Value $r.estimated_total_tokens_min
+        $curMax = Convert-ToDoubleSafe -Value $r.estimated_total_tokens_max
+        $curInputForCost = Convert-ToDoubleSafe -Value $r.cost_input_tokens
+        $curOutputForCost = Convert-ToDoubleSafe -Value $r.cost_output_tokens
+        $curInputRate = Convert-ToDoubleSafe -Value $r.cost_input_per_1m
+        $curOutputRate = Convert-ToDoubleSafe -Value $r.cost_output_per_1m
+
+        $deltaVisible = $curVisible
+        $deltaMin = $curMin
+        $deltaMax = $curMax
+        $deltaInputForCost = $curInputForCost
+        $deltaOutputForCost = $curOutputForCost
+
+        if ($prevBySession.ContainsKey($sid)) {
+            $p = $prevBySession[$sid]
+            $deltaVisible = [math]::Max(0.0, $curVisible - $p.visible)
+            $deltaMin = [math]::Max(0.0, $curMin - $p.min)
+            $deltaMax = [math]::Max(0.0, $curMax - $p.max)
+            $deltaInputForCost = [math]::Max(0.0, $curInputForCost - $p.input_for_cost)
+            $deltaOutputForCost = [math]::Max(0.0, $curOutputForCost - $p.output_for_cost)
+        }
+
+        $deltaCost = (($deltaInputForCost / 1000000.0) * $curInputRate) + (($deltaOutputForCost / 1000000.0) * $curOutputRate)
+
+        $prevBySession[$sid] = [PSCustomObject]@{
+            visible = $curVisible
+            min = $curMin
+            max = $curMax
+            input_for_cost = $curInputForCost
+            output_for_cost = $curOutputForCost
+        }
+
+        $deltaRows += [PSCustomObject]@{
+            date = (Get-Date $r.timestamp).ToString('yyyy-MM-dd')
+            timestamp = $r.timestamp
+            delta_visible = $deltaVisible
+            delta_min = $deltaMin
+            delta_max = $deltaMax
+            delta_cost = [math]::Round($deltaCost, 6)
+        }
+    }
+
+    $grouped = $deltaRows | Group-Object date
+    $dailyRows = @()
+    foreach ($g in $grouped) {
+        $sumVisible = ($g.Group | Measure-Object -Property delta_visible -Sum).Sum
+        $sumMin = ($g.Group | Measure-Object -Property delta_min -Sum).Sum
+        $sumMax = ($g.Group | Measure-Object -Property delta_max -Sum).Sum
+        $sumCost = ($g.Group | Measure-Object -Property delta_cost -Sum).Sum
+        $lastTs = ($g.Group | Sort-Object { Get-Date $_.timestamp } -Descending | Select-Object -First 1).timestamp
+
+        $dailyRows += [PSCustomObject]@{
+            date = $g.Name
+            generated_at = $lastTs
+            runs = $g.Count
+            total_visible_tokens_k = [math]::Round(($sumVisible / 1000.0), 2)
+            total_tokens_min_k = [math]::Round(($sumMin / 1000.0), 2)
+            total_tokens_max_k = [math]::Round(($sumMax / 1000.0), 2)
+            total_estimated_cost_usd = [math]::Round($sumCost, 2)
+        }
+    }
+
+    return @($dailyRows | Sort-Object date)
+}
+
 function Write-DailyAggregateMarkdownRow {
     param(
         [string]$MarkdownPath,
@@ -285,6 +378,53 @@ function Write-DailyAggregateMarkdownRow {
     $kept = @($existing | Where-Object { $_ -notmatch $datePattern })
     $updated = @($kept + $line)
     $updated | Out-File -FilePath $MarkdownPath -Encoding UTF8
+}
+
+function Write-DailyAggregateMarkdownTable {
+    param(
+        [string]$MarkdownPath,
+        [array]$DailyRows
+    )
+
+    $dir = Split-Path -Parent $MarkdownPath
+    if ($dir -and -not (Test-Path $dir)) {
+        New-Item -ItemType Directory -Path $dir | Out-Null
+    }
+
+    $fmt = [System.Globalization.CultureInfo]::InvariantCulture
+    $lines = @(
+        '# Token Usage Daily Aggregate'
+        ''
+        '| Date | Generated At | Runs | Total Visible Tokens (K) | Total Tokens Min (K) | Total Tokens Max (K) | Total Estimated Cost (USD) |'
+        '|---|---|---:|---:|---:|---:|---:|'
+    )
+
+    $sumRuns = 0
+    $sumVisibleK = 0.0
+    $sumMinK = 0.0
+    $sumMaxK = 0.0
+    $sumCost = 0.0
+
+    foreach ($r in $DailyRows) {
+        $visibleK = ([double]$r.total_visible_tokens_k)
+        $minK = ([double]$r.total_tokens_min_k)
+        $maxK = ([double]$r.total_tokens_max_k)
+        $costUsd = ([double]$r.total_estimated_cost_usd)
+
+        $sumRuns += [int]$r.runs
+        $sumVisibleK += $visibleK
+        $sumMinK += $minK
+        $sumMaxK += $maxK
+        $sumCost += $costUsd
+
+        $lines += "| $($r.date) | $($r.generated_at) | $($r.runs) | $($visibleK.ToString('F2',$fmt)) | $($minK.ToString('F2',$fmt)) | $($maxK.ToString('F2',$fmt)) | $($costUsd.ToString('F2',$fmt)) |"
+    }
+
+    if ($DailyRows.Count -gt 0) {
+        $lines += "| **TOTAL** | - | **$sumRuns** | **$(([math]::Round($sumVisibleK,2)).ToString('F2',$fmt))** | **$(([math]::Round($sumMinK,2)).ToString('F2',$fmt))** | **$(([math]::Round($sumMaxK,2)).ToString('F2',$fmt))** | **$(([math]::Round($sumCost,2)).ToString('F2',$fmt))** |"
+    }
+
+    $lines | Out-File -FilePath $MarkdownPath -Encoding UTF8
 }
 
 function Test-IsAfterDailyCutoff {
@@ -514,23 +654,23 @@ if ($JsonPath) {
         }
 
         $dailyForMd = $null
+        $allDailyRows = @()
         if ($canWriteMdDaily) {
-            $dailyForMd = Get-DailyAggregateRow -HistoryPath $JsonPath -DateKey $todayKey -SessionId $resolvedSessionId
+            $allDailyRows = Get-AllDailyAggregateRows -HistoryPath $JsonPath
+            $dailyForMd = @($allDailyRows | Where-Object { $_.date -eq $todayKey } | Select-Object -First 1)
         }
 
-        if ($null -ne $dailyForMd) {
-            Write-DailyAggregateMarkdownRow -MarkdownPath $dailyMdPathResolved -DailyRow $dailyForMd
+        if ($allDailyRows.Count -gt 0) {
+            Write-DailyAggregateMarkdownTable -MarkdownPath $dailyMdPathResolved -DailyRows $allDailyRows
             Write-Output ""
-            Write-Output "Daily aggregate markdown appended: $dailyMdPathResolved"
-            Write-Output "- Date: $($dailyForMd.date)"
-            Write-Output "- Runs today: $($dailyForMd.runs)"
-            Write-Output "- Total visible tokens today (K): $($dailyForMd.total_visible_tokens_k)"
-            Write-Output ("- Total estimated cost today (USD): {0:F2}" -f [double]$dailyForMd.total_estimated_cost_usd)
-            if (-not [string]::IsNullOrWhiteSpace($resolvedSessionId)) {
-                Write-Output "- Session runs: $($dailyForMd.session_runs)"
-                Write-Output "- Session visible tokens (acc, K): $($dailyForMd.session_visible_tokens_k)"
-                Write-Output ("- Session estimated cost (acc, USD): {0:F2}" -f [double]$dailyForMd.session_estimated_cost_usd)
+            Write-Output "Daily aggregate markdown rebuilt: $dailyMdPathResolved"
+            if ($null -ne $dailyForMd) {
+                Write-Output "- Date: $($dailyForMd.date)"
+                Write-Output "- Runs today: $($dailyForMd.runs)"
+                Write-Output "- Total visible tokens today (K): $($dailyForMd.total_visible_tokens_k)"
+                Write-Output ("- Total estimated cost today (USD): {0:F2}" -f [double]$dailyForMd.total_estimated_cost_usd)
             }
+            Write-Output "- Days in table: $($allDailyRows.Count)"
         }
     }
 
