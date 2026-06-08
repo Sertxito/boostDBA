@@ -105,13 +105,87 @@ FROM sys.parameters
 WHERE OBJECT_OBJECTPROPERTY(object_id, 'IsProcedure') = 1
 ```
 
-### 6. Identifica Reglas de Negocio
-Extrae reglas del código de procedimiento:
-- Lógica de validación (IF @value < 100 THEN ...)
-- Reglas de transformación (CASE statements, cálculos)
-- Restricciones y refuerzo de restricciones
-- Lógica temporal (cuándo, con qué frecuencia, dependencias de tiempo)
-- Reglas de máquina de estado (flujos de estado de orden, etc.)
+### 6. Extracción de Reglas de Negocio desde Código SQL Real
+
+**OBLIGATORIO**: Las reglas de negocio se extraen leyendo el cuerpo SQL de los SPs, NO inferiendo por nombre ni por metadata. El proceso es:
+
+#### 6.1 Localizar SPs Críticos/Complejos
+
+```powershell
+# Localizar línea exacta del SP en el schema
+Select-String -Path "schema/db.sql" -Pattern "NOMBRE_SP" | Select-Object -First 3 LineNumber, Line
+```
+
+#### 6.2 Leer el Cuerpo Completo
+
+```powershell
+# Extraer cuerpo completo por número de línea
+Get-Content "schema/db.sql" -TotalCount ($lineStart + 500) | Select-Object -Skip ($lineStart - 1)
+```
+
+#### 6.3 Plantilla de Regla de Negocio (extraída del código real)
+
+```markdown
+### R[N]: [Nombre descriptivo de la regla]
+
+**SP de origen**: `schema.NombreSP`
+**Fecha SP**: [del encabezado del SP]
+**Autor SP**: [del encabezado del SP]
+
+**Descripción de negocio**: [En lenguaje de negocio, sin SQL]
+
+**Lógica SQL que la implementa**:
+\`\`\`sql
+-- Fragmento real del SP
+CASE WHEN campo = valor THEN ... END
+\`\`\`
+
+**Variables y umbrales clave**:
+| Variable | Valor/Tipo | Significado |
+|---|---|---|
+| @PARAM | INT | ... |
+
+**Estados involucrados**: (si aplica máquina de estados)
+| ID | Estado | Condición de transición |
+|---|---|---|
+| 1 | BORRADOR | ... |
+| 5 | FINALIZADO | ... |
+
+**Dependencias**:
+- Tablas leídas: T_TABLA_A, T_TABLA_B
+- Tablas escritas: T_TABLA_C
+- SPs llamados: schema.SP_DEPENDIENTE
+
+**Preguntas abiertas**: (lo que el código no deja claro)
+- ¿Por qué el valor mágico 65535 en F_BAJA?
+- ¿Qué convocatoria controla el ID_DICCIONARIO_CONFIG = 498?
+```
+
+#### 6.4 Señales de Reglas de Negocio en SQL
+
+| Patrón SQL | Tipo de regla |
+|---|---|
+| `CASE WHEN estado = N THEN` | Máquina de estados / Transición |
+| `IF NOT EXISTS (SELECT...)` | Validación de unicidad |
+| `MERGE ... WHEN NOT MATCHED` | Upsert con lógica de creación |
+| `DecryptByKey(campo)` | Datos sensibles protegidos por ley |
+| `EXEC UP_V_ABRIR_LLAVE` | Acceso a datos cifrados (GDPR relevante) |
+| `AVG/SUM/MAX` sobre jeraquías | Cálculo agregado de puntuación |
+| `WHILE @Nivel > 0` | Propagación jerárquica de valores |
+| `ID_TIPOEXCESO = N` | Casuística de excesos por tipo |
+| `plc.ParticipanteFinalizadoOAbandono(...)` | Lógica de elegibilidad encapsulada |
+| `B_EXCESO = 1 AND ID_TIPOEXCESO = N` | Clasificación de excesos regulatorios |
+| `@ID_DICCIONARIO_CONFIG = N` | Configuración por convocatoria |
+| `IN ('CABANT01A', ...)` | Codes de causa de anulación |
+
+#### 6.5 Proceso de Extracción por SP
+
+Para cada SP Critical/Complex:
+1. Leer encabezado → obtener propósito declarado
+2. Leer parámetros → entender el contrato de entrada
+3. Identificar patrones de la tabla 6.4 → clasificar tipo de regla
+4. Documentar con la plantilla 6.3
+5. Marcar preguntas abiertas que requieren validación con el negocio
 
 ### 7. Crea Matrices de Dependencias
 ```sql

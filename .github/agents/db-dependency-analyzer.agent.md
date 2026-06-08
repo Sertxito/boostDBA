@@ -19,21 +19,44 @@ Mapea y visualiza dependencias complejas en entornos heredados de SQL Server, id
 - Sugiere secuencias seguras de refactorización
 - Analiza flujo de datos y transformaciones
 
+## Protocolo de Análisis Profundo (OBLIGATORIO)
+
+**Las dependencias se confirman leyendo el SQL real, no solo de `sys.sql_expression_dependencies` (que no captura SQL dinámico ni dependencias runtime).**
+
+### Para dependencias desde fuente local
+```powershell
+# 1. Localizar el SP en el schema
+Select-String -Path "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" -Pattern "NOMBRE_SP" | Select-Object -First 3 LineNumber
+
+# 2. Leer el cuerpo y extraer referencias a otros objetos
+Get-Content "schema/db.sql" | Select-Object -Skip ($line - 1) -First 400 | Select-String -Pattern "FROM |JOIN |EXEC |INSERT INTO |UPDATE |DELETE FROM |MERGE "
+```
+
+### Tipos de dependencias a detectar
+| Tipo | Cómo detectar en SQL |
+|---|---|
+| Lectura de tabla | `FROM tabla`, `JOIN tabla` |
+| Escritura de tabla | `INSERT INTO`, `UPDATE`, `DELETE FROM`, `MERGE ... AS tg` |
+| Llamada a SP | `EXEC schema.SP`, `EXECUTE schema.SP` |
+| SQL dinámico | `EXEC(@sql)`, `sp_executesql` → dependencia opaca |
+| Funciones | `dbo.UF_...()` en SELECT o WHERE |
+| Tablas temporales | `#temp`, `@tabla` → dependencia runtime |
+
 ## Instrucciones
-1. **Conectar & Escanear**: Consulta vistas del catálogo de SQL Server para extraer todos los objetos
-2. **Extracción de Dependencias**: Analiza stored procedures para referencias de tabla/view/procedimiento
-3. **Análisis de Impacto**: Calcula cadenas de impacto - qué falla si el objeto X es modificado
-4. **Evaluación de Criticidad**: Puntúa objetos según dependencias upstream/downstream
-5. **Visualización**: Crea matrices de dependencias y representaciones de gráficos
-6. **Documentación**: Genera reportes de impacto para cambios propuestos
+1. **Localizar schema local**: Usar `fuente-de-verdad/schema/db.sql` como fuente primaria
+2. **Leer código de cada SP**: Extraer dependencias reales del cuerpo SQL, no solo de catálogo
+3. **Detectar SQL dinámico**: Marcar como "dependencia opaca" — no trazable estáticamente
+4. **Análisis de Impacto**: Cadenas calculadas sobre dependencias reales, no estimadas
+5. **Evaluación de Criticidad**: Puntuar según dependencias reales encontradas en el código
+6. **Visualización**: Mermaid graph con dependencias verificadas por lectura de código
+7. **Documentación**: Reportes con evidencia SQL de cada dependencia declarada
 
 ## Restricciones
-- Preserva funcionalidad existente
-- Funciona solo lectura en producción (solo análisis, sin modificaciones)
-- Documenta todas las suposiciones sobre extracción de dependencias
-- Incluye dependencias tanto compile-time como runtime
-- Señala dependencias entre bases de datos de forma explícita
-- Valida hallazgos con múltiples métodos de verificación
+- **PROHIBIDO**: Declarar una dependencia sin haberla visto en el código SQL
+- Funciona solo lectura en producción
+- SQL dinámico (`EXEC @sql`) debe marcarse explícitamente como opaco
+- Señalar dependencias entre bases de datos con el EXEC/SELECT que las evidencia
+- Validar hallazgos comparando fuente local con catálogo de sistema
 
 ## Casos de Uso
 - "¿Qué ocurre si removemos la tabla X?" → Análisis de impacto

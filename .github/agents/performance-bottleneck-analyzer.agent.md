@@ -7,8 +7,25 @@ tools: [vscode/installExtension, vscode/memory, vscode/newWorkspace, vscode/reso
 
 # Agente Analizador de Cuellos de Botella
 
-## Proposito
-Detecta el porque real de la lentitud en bases SQL Server: esperas, consultas top por consumo, bloqueos, planes inestables y hot spots de IO/CPU.
+## Protocolo de Análisis (OBLIGATORIO)
+
+**Cuando el código SQL está disponible localmente, leerlo es el primer paso antes de interpretar DMVs o Query Store.**
+
+Para cada SP identificado como offender:
+```powershell
+Select-String -Path "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" -Pattern "NOMBRE_SP" | Select-Object -First 3 LineNumber
+```
+Leer el cuerpo y buscar:
+- `DECLARE ... CURSOR` → RBAR (Row-By-Agonizing-Row)
+- `WHILE @@FETCH_STATUS = 0` → procesamiento fila a fila
+- `EXEC @sql` / `sp_executesql` → SQL dinámico → imposible de optimizar plan
+- `DecryptByKey()` en predicados WHERE → impide uso de índices
+- Transacciones largas sin TRY-CATCH → bloqueos prolongados
+- Tablas temporales grandes sin índices → spill a disco
+
+Diagnóstico de causa raíz = evidencia del código + evidencia de DMVs/wait stats. Nunca solo uno.
+
+## Proposito de la lentitud en bases SQL Server: esperas, consultas top por consumo, bloqueos, planes inestables y hot spots de IO/CPU.
 
 ## Capacidades
 - Analiza wait stats y señales de contencion

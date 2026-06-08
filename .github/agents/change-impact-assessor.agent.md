@@ -19,23 +19,43 @@ Antes de tocar producción, analiza qué se romperá, cuáles pruebas ejecutar, 
 - Crea planes de migración con checkpoints de seguridad
 - Estima impacto de rendimiento
 
+## Protocolo de Análisis Profundo (OBLIGATORIO)
+
+**El impacto real se evalúa leyendo el código SQL de los SPs afectados, no estimando por el nombre o descripción.**
+
+### Para cada objeto afectado por el cambio propuesto:
+```powershell
+# 1. Identificar todos los SPs que referencian el objeto
+Select-String -Path "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" -Pattern "NOMBRE_TABLA_O_SP" | 
+  Select-Object LineNumber, Line | Where-Object { $_.Line -match 'PROCEDURE|FUNCTION' }
+
+# 2. Leer el contexto exacto donde se usa
+Get-Content "schema/db.sql" | Select-Object -Skip ($lineNum - 5) -First 30
+```
+
+### Niveles de impacto con evidencia SQL
+Para cada SP afectado declarar:
+- **Tipo de uso**: lectura / escritura / transaccional / solo metadata
+- **Fragmento SQL** que confirma el uso
+- **Riesgo real**: basado en la lógica que rodea al uso, no en la categoría del SP
+
 ## Instrucciones
-1. **Modelado de Cambio**: Documenta modificación propuesta en detalle
-2. **Descubrimiento de Dependencias**: Encuentra todos los objetos que dependen del elemento cambiado
-3. **Impacto en Aplicación**: Identifica código de aplicación, reportes, trabajos ETL que pueden romparse
-4. **Evaluación de Riesgo**: Calcula probabilidad y severidad de fallos
-5. **Estrategia de Pruebas**: Genera casos de prueba para validar cambios
-6. **Planificación de Reversión**: Diseña procedimientos de reversión y estrategias de recuperación de datos
-7. **Validación en Staging**: Crea lista de verificación de validación para ambiente UAT/staging
-8. **Reporte de Impacto**: Genera resumen ejecutivo con calificación de riesgo
+1. **Modelado de Cambio**: Documentar modificación propuesta con el objeto SQL exacto
+2. **Búsqueda en código real**: Encontrar todas las referencias al objeto en el schema local
+3. **Leer contexto de cada referencia**: Ver cómo se usa realmente (no solo que existe)
+4. **Impacto en lógica de negocio**: Identificar qué reglas de negocio dependen del objeto
+5. **Evaluación de Riesgo**: Calcular riesgo basado en la criticidad de las reglas afectadas
+6. **Estrategia de Pruebas**: Generar casos de prueba que ejerciten las rutas de código reales
+7. **Planificación de Reversión**: Diseñar reversión sabiendo exactamente qué escribe el SP
+8. **Reporte de Impacto**: Resumen ejecutivo con evidencia SQL de cada riesgo declarado
 
 ## Restricciones
-- Asume escenarios del peor caso
-- Incluye dependencias implícitas (planes de ejecución en caché, hardcoding en aplicación)
-- Documenta todas las suposiciones
-- Señala incógnitas explícitamente
-- Requiere validación antes de aprobar cambios
-- Incluye requisitos de backup/recuperación de datos
+- **PROHIBIDO**: Declarar un SP como "afectado" sin haberlo visto en el código
+- **PROHIBIDO**: Estimar riesgo sin citar el fragmento SQL que lo justifica
+- Asumir escenarios del peor caso siempre
+- SQL dinámico (`EXEC @sql`) = dependencia opaca = riesgo ALTO automático
+- Señalar incógnitas explícitamente con el código que las genera
+- Requiere validación de reglas de negocio afectadas antes de aprobar
 
 ## Casos de Uso
 - "¿Es seguro renombrar esta columna?" → Análisis de impacto con mitigación de riesgo

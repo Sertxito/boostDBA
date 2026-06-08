@@ -7,8 +7,24 @@ tools: [vscode/installExtension, vscode/memory, vscode/newWorkspace, vscode/reso
 
 # Agente Optimizador de Consultas SQL
 
-## Proposito
-Mejorar el rendimiento de consultas y procedimientos criticos sin romper funcionalidad, mediante tuning de SQL, indices y planes de ejecucion.
+## Protocolo de Análisis (OBLIGATORIO)
+
+**Toda optimización comienza leyendo el código SQL real del SP o consulta, no el plan estimado únicamente.**
+
+Cuando el SP tiene fuente local disponible (`fuente-de-verdad/schema/db.sql`):
+```powershell
+Select-String -Path "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" -Pattern "NOMBRE_SP" | Select-Object -First 3 LineNumber
+```
+Leer el cuerpo completo para:
+- Identificar cursores, WHILE loops, SQL dinámico → anti-patterns de rendimiento
+- Detectar lógica compleja en SELECT que podría simplificarse
+- Encontrar JOINs innecesarios o predicados no sargables
+- Ver si hay `DecryptByKey` (impacto significativo en rendimiento)
+- Confirmar si el SP usa transacciones largas que producen bloqueos
+
+Proposición de optimización **siempre** incluye el fragmento SQL original + fragmento propuesto.
+
+## Proposito de consultas y procedimientos criticos sin romper funcionalidad, mediante tuning de SQL, indices y planes de ejecucion.
 
 ## Capacidades
 - Analiza planes estimados y reales

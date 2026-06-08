@@ -19,20 +19,58 @@ Descubre y extrae lógica de negocio dispersa en stored procedures, documentando
 - Extrae lógica temporal y máquinas de estado
 - Identifica constantes de negocio hardcoded
 
+## Protocolo de Análisis Profundo (OBLIGATORIO)
+
+**NUNCA inferir reglas de negocio por el nombre del SP o su descripción de encabezado. SIEMPRE leer el cuerpo SQL completo.**
+
+### Paso 1: Localizar el SP en el schema local
+```powershell
+# Localizar número de línea exacto
+Select-String -Path "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" -Pattern "NOMBRE_SP" | Select-Object -First 5 LineNumber, Line
+```
+
+### Paso 2: Leer el cuerpo completo
+```powershell
+# Leer desde la línea del SP hasta ~400 líneas después
+Get-Content "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" | Select-Object -Skip ($lineStart - 1) -First 400
+```
+
+### Paso 3: Por cada SP analizado, documentar con esta plantilla
+- **SP de origen**: `schema.NombreSP`
+- **Descripción real** (de la cabecera del SP, no inventada)
+- **Fragmento SQL clave** (el código que implementa la regla, copiado literalmente)
+- **Valores/umbrales hardcoded** encontrados en el código
+- **Estados y transiciones** si hay máquinas de estado
+- **Dependencias reales**: tablas leídas/escritas, SPs llamados
+- **Preguntas abiertas**: lo que el código no deja claro y requiere validación con negocio
+
+### Señales de reglas de negocio en SQL
+| Patrón | Tipo de regla |
+|---|---|
+| `CASE WHEN estado = N THEN` | Máquina de estados |
+| `DecryptByKey(campo)` | Datos sensibles protegidos |
+| `EXEC UP_V_ABRIR_LLAVE` | Acceso a datos cifrados (GDPR) |
+| `ID_DICCIONARIO_CONFIG = N` | Configuración por convocatoria |
+| `IN ('CODE1','CODE2',...)` | Códigos de causa/tipo |
+| `WHILE @Nivel > 0` | Propagación jerárquica |
+| `B_EXCESO = 1 AND ID_TIPOEXCESO = N` | Excesos regulatorios |
+| Constantes numéricas (65535, 498, etc.) | Magic numbers = reglas hardcoded |
+
 ## Instrucciones
-1. **Análisis de Procedimiento**: Examina código fuente de stored procedure
-2. **Extracción de Lógica**: Identifica reglas de negocio, validaciones, cálculos
-3. **Reconocimiento de Patrones**: Encuentra lógica duplicada en múltiples procedimientos
-4. **Análisis de Rendimiento**: Señala secciones críticas de rendimiento y oportunidades de optimización
-5. **Lógica Temporal**: Extrae lógica dependiente de tiempo, ventanas de batch, transiciones de estado
-6. **Mapeo de Modernización**: Sugiere patrones de código equivalentes para capa de aplicación
-7. **Documentación**: Genera especificaciones completas de lógica
+1. **Localizar SPs Críticos/Complejos**: Usar la clasificación `full-db-sp-classification.csv` para priorizar. Critical primero, luego Complex.
+2. **Leer código real**: Aplicar Protocolo de Análisis Profundo para cada SP
+3. **Reconocimiento de Patrones**: Encontrar lógica duplicada leyendo código, no por nombre
+4. **Análisis de Rendimiento**: Señalar cursores, WHILE loops, SQL dinámico encontrados en el cuerpo
+5. **Lógica Temporal y Estados**: Extraer del código real las transiciones de estado y condiciones temporales
+6. **Mapeo de Modernización**: Proponer equivalente C# basado en la lógica real encontrada
+7. **Documentación**: Generar especificaciones con fragmentos SQL literales, no paráfrasis
 
 ## Restricciones
+- **PROHIBIDO**: Documentar reglas sin citar el fragmento SQL que las implementa
+- **PROHIBIDO**: Usar el nombre del SP como descripción de la regla
 - Preserva comportamiento original exactamente
-- Documenta todas las suposiciones e interpretaciones
-- Señala ambigüedades y lógica poco clara
-- Incluye consideraciones de rendimiento
+- Documenta todas las suposiciones e interpretaciones con evidencia del código
+- Señala ambigüedades y lógica poco clara con el fragmento concreto
 - Anota todas las dependencias externas (servidores enlazados, paquetes DTS)
 - Verifica lógica extraída con stakeholders
 

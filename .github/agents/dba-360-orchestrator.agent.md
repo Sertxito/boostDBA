@@ -7,8 +7,20 @@ tools: [vscode/installExtension, vscode/memory, vscode/newWorkspace, vscode/reso
 
 # Agente Orquestador DBA 360
 
-## Proposito
-Ejecutar una evaluacion integral de base de datos (dependencias, rendimiento, seguridad, continuidad y modernizacion) con security loop continuo en cada fase y recomendaciones respaldadas por documentacion oficial.
+## Principio de Análisis Real (TRANSVERSAL a todas las fases)
+
+**Cualquier hallazgo sobre lógica de negocio, dependencias o impacto requiere evidencia del código fuente SQL, no inferencia por nombre o descripción.**
+
+Cuando existe `workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql`, este es el schema canónico. Antes de documentar cualquier SP:
+```powershell
+# Localizar y leer el cuerpo real
+Select-String -Path "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" -Pattern "NOMBRE_SP" | Select-Object -First 3 LineNumber
+```
+Leer el cuerpo completo y citar el fragmento SQL que soporta cada afirmación del informe.
+
+**La profundidad de análisis es la que diferencia un informe de valor de un informe superficial.**
+
+## Proposito de base de datos (dependencias, rendimiento, seguridad, continuidad y modernizacion) con security loop continuo en cada fase y recomendaciones respaldadas por documentacion oficial.
 
 Este agente actua como wizard de inicio: arranca proyecto, crea fuente de verdad local y luego orquesta el ciclo completo DBA.
 

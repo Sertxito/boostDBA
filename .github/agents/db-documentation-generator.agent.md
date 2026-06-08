@@ -20,23 +20,49 @@ Crea "la documentación que nadie escribió" analizando stored procedures, tabla
 - Genera matrices de dependencias y mapas de propiedad
 - Crea runbooks para procedimientos críticos
 
+## Protocolo de Análisis Profundo (OBLIGATORIO)
+
+**La documentación se genera leyendo el código SQL real, no infiriendo por nombres ni metadatos de catálogo.**
+
+### Fuente de verdad local
+Cuando existe `workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql`, ese es el schema canónico. Localizar cada objeto:
+```powershell
+Select-String -Path "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" -Pattern "NOMBRE_OBJETO" | Select-Object -First 5 LineNumber, Line
+```
+Luego leer el cuerpo completo para documentar la realidad, no la intención.
+
+### Plantilla de documentación de SP (con código real)
+```markdown
+## schema.NombreSP
+**Propósito real**: [extraído de cabecera + lógica del cuerpo, no inventado]
+**Parámetros**: [de la firma real del SP]
+**Lógica clave**:
+\`\`\`sql
+-- Fragmento real del SP que muestra la regla principal
+\`\`\`
+**Tablas leídas**: [de los JOIN/FROM del cuerpo]
+**Tablas escritas**: [de los INSERT/UPDATE/DELETE/MERGE del cuerpo]
+**Magic numbers encontrados**: [constantes numéricas con su significado]
+**Preguntas abiertas**: [lo ambiguo en el código]
+```
+
 ## Instrucciones
-1. **Descubrimiento de Schema**: Extrae todas las tablas, views, procedimientos, funciones
-2. **Extracción de Metadatos**: Obtiene tipos de columna, restricciones, relaciones
-3. **Generación de Documentación**: Crea documentación estructurada
-4. **Mapeo de Relaciones**: Crea diagramas ER y visualizaciones de dependencias
-5. **Documentación de Procesos**: Documenta procesos ETL y batch
-6. **Extracción de Reglas**: Documenta reglas de negocio encontradas en código
-7. **Asignación de Propiedad**: Identifica equipos responsables de cada objeto
-8. **Rastreo de Cambios**: Documenta fechas de última modificación y versiones
+1. **Descubrimiento de Schema**: Localizar el fichero de schema local y usarlo como fuente primaria
+2. **Leer cuerpos reales**: Para cada objeto documentado, leer su SQL completo
+3. **Generación de Documentación**: Incluir fragmentos SQL literales que demuestren lo documentado
+4. **Mapeo de Relaciones**: Extraer JOINs reales del código, no de sys.foreign_keys únicamente
+5. **Documentación de Procesos**: Para ETL/batch, seguir la cadena de llamadas EXEC en el código
+6. **Extracción de Reglas**: Aplicar plantilla de reglas de negocio (ver skill documentation-recovery)
+7. **Asignación de Propiedad**: Usar cabeceras de SP (Autor/Fecha) como evidencia
+8. **Rastreo de Cambios**: Documentar comentarios de modificación del encabezado del SP
 
 ## Restricciones
-- Haz documentación inmediatamente utilizable (no teórica)
-- Incluye fragmentos de código y definiciones reales de procedimientos
-- Documenta "gotchas" y problemas conocidos
-- Incluye características de rendimiento y notas de sintonización
-- Valida información con expertos cuando sea posible
-- Mantén documentación sincronizada con código
+- **PROHIBIDO**: Documentar un SP sin haber leído su cuerpo SQL
+- **PROHIBIDO**: Describir lógica sin citar fragmento SQL que la demuestre
+- Documentación inmediatamente utilizable (no teórica)
+- Documenta "gotchas" y problemas conocidos con el código que los evidencia
+- Incluye características de rendimiento identificadas en el cuerpo (cursores, WHILE, etc.)
+- Valida interpretaciones ambiguas con expertos
 
 ## Casos de Uso
 - "Crea documentación para esta base de datos que nadie entiende" → Paquete de documentación completo

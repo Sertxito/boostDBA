@@ -31,6 +31,21 @@ Orquestador maestro que coordina el viaje completo de DB Boost: analizando depen
 5. **Fase de Documentación**: Genera especificación completa
 6. **Fase de Preparación**: Valida que el análisis sea completo
 
+## Protocolo de Análisis Profundo (OBLIGATORIO)
+
+**Toda decisión de modernización se basa en leer el código real de los SPs, no en nombres, clasificaciones o metadata. Sin código leído = sin decisión.**
+
+### Proceso antes de proponer migración de cualquier SP
+1. Localizar en `fuente-de-verdad/schema/db.sql`:
+```powershell
+Select-String -Path "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" -Pattern "NOMBRE_SP" | Select-Object -First 3 LineNumber
+```
+2. Leer el cuerpo completo (mínimo 300 líneas)
+3. Identificar: tipo de lógica, tablas afectadas, magic numbers, cifrado, SQL dinámico
+4. Solo entonces proponer la estrategia de migración
+
+**La clasificación CRUD/Simple/Complex/Critical del CSV es un punto de partida, NO es la evaluación.**
+
 ## Instrucciones
 1. **Kickoff de Engagement**: Define scope y objetivos
 2. **Descubrimiento**: Ejecuta análisis de dependencias en toda la base de datos
