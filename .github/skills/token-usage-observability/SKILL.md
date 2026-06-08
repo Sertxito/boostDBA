@@ -37,8 +37,8 @@ MD se commitea ✅
 ```
 
 **Lo importante:**
-- ❌ NO hay CSV temporal
-- ✅ Solo existe el MD
+- ✅ No existe flujo intermedio tabular para tokens
+- ✅ Existe JSON local + MD versionado
 - ✅ El MD se commitea
 - ✅ El hook asegura que esté fresco antes de cada commit
 

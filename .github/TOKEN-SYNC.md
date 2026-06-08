@@ -39,7 +39,7 @@ MD se commitea ✅
 
 | Archivo | Propósito |
 |---------|----------|
-| `token-usage-daily-aggregate.md` | ✅ Tabla con totales diarios, SE COMMITEA |
+| `token-usage-daily-aggregate.md` | ✅ Tabla con totales diarios + acumulado de sesión (tokens/coste), SE COMMITEA |
 | `token-usage-history.json` | Log local gitignored, no va a git |
 
 ---
@@ -64,7 +64,7 @@ Cada `git commit`:
 
 Los datos de tokens se guardan en:
 - `.github/reports/token-usage-history.json` (log local, gitignored)
-- `.github/reports/token-usage-daily-aggregate.md` (tabla visible, versionada)
+- `.github/reports/token-usage-daily-aggregate.md` (tabla visible, versionada, con coste y acumulado de sesión)
 
 ---
 

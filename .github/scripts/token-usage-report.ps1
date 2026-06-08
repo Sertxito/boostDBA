@@ -6,15 +6,13 @@ param(
     [switch]$IncludeDebugLogs,
     [switch]$AppendHistory,
     [switch]$ShowWeeklySummary,
-    [switch]$AppendDailyAggregate,
-    [string]$DailyAggregateCsvPath,
     [switch]$AppendDailyAggregateMarkdown,
     [string]$DailyAggregateMdPath,
     [switch]$DailyCloseMode,
     [string]$DailyCloseTime = '23:55',
     [string]$ModelName = 'gpt-5.3-codex',
-    [double]$InputCostPer1M = 0,
-    [double]$OutputCostPer1M = 0,
+    [double]$InputCostPer1M = 5,
+    [double]$OutputCostPer1M = 15,
     [ValidateSet('estimated_total_tokens_max','estimated_total_tokens_min','estimated_visible_tokens')]
     [string]$CostBasis = 'estimated_total_tokens_max'
 )
@@ -108,9 +106,9 @@ function Get-EstimatedCost {
     $inCost = ($InputTokens / 1000000.0) * $InputRatePer1M
     $outCost = ($OutputTokens / 1000000.0) * $OutputRatePer1M
     return [PSCustomObject]@{
-        input_cost = [math]::Round($inCost, 6)
-        output_cost = [math]::Round($outCost, 6)
-        total_cost = [math]::Round($inCost + $outCost, 6)
+        input_cost = [math]::Round($inCost, 2)
+        output_cost = [math]::Round($outCost, 2)
+        total_cost = [math]::Round($inCost + $outCost, 2)
         has_rates = $true
     }
 }
@@ -140,7 +138,8 @@ function Convert-ToDoubleSafe {
 function Get-DailyAggregateRow {
     param(
         [string]$HistoryPath,
-        [string]$DateKey
+        [string]$DateKey,
+        [string]$SessionId
     )
 
     if (-not (Test-Path $HistoryPath)) {
@@ -170,41 +169,43 @@ function Get-DailyAggregateRow {
         $sumCost += Convert-ToDoubleSafe -Value $r.cost_total
     }
 
+    $sessionRows = @()
+    if (-not [string]::IsNullOrWhiteSpace($SessionId)) {
+        $sessionRows = @($rows | Where-Object { $_.session_id -eq $SessionId })
+    }
+
+    $sessionRuns = 0
+    $sessionVisible = 0.0
+    $sessionCost = 0.0
+    if ($sessionRows.Count -gt 0) {
+        $sessionRuns = $sessionRows.Count
+        $sessionVisible = ($sessionRows | Measure-Object -Property estimated_visible_tokens -Sum).Sum
+        foreach ($r in $sessionRows) {
+            $sessionCost += Convert-ToDoubleSafe -Value $r.cost_total
+        }
+    }
+
     $dailyRow = [PSCustomObject]@{
         date = $DateKey
         generated_at = (Get-Date).ToString('s')
         runs = $dayRows.Count
         total_visible_tokens = [math]::Round($sumVisible, 0)
+        total_visible_tokens_k = [math]::Round(($sumVisible / 1000.0), 2)
         total_tokens_min = [math]::Round($sumMin, 0)
+        total_tokens_min_k = [math]::Round(($sumMin / 1000.0), 2)
         total_tokens_max = [math]::Round($sumMax, 0)
-        total_estimated_cost = [math]::Round($sumCost, 6)
+        total_tokens_max_k = [math]::Round(($sumMax / 1000.0), 2)
+        total_estimated_cost = [math]::Round($sumCost, 2)
+        total_estimated_cost_usd = [math]::Round($sumCost, 2)
+        session_id = $SessionId
+        session_runs = $sessionRuns
+        session_visible_tokens = [math]::Round($sessionVisible, 0)
+        session_visible_tokens_k = [math]::Round(($sessionVisible / 1000.0), 2)
+        session_estimated_cost = [math]::Round($sessionCost, 2)
+        session_estimated_cost_usd = [math]::Round($sessionCost, 2)
     }
 
     return $dailyRow
-}
-
-function Write-DailyAggregateRow {
-    param(
-        [string]$DailyPath,
-        [pscustomobject]$DailyRow
-    )
-
-    if ($null -eq $DailyRow) {
-        return $null
-    }
-
-    $dir = Split-Path -Parent $DailyPath
-    if ($dir -and -not (Test-Path $dir)) {
-        New-Item -ItemType Directory -Path $dir | Out-Null
-    }
-
-    if (Test-Path $DailyPath) {
-        $dailyRow | Export-Csv -Path $DailyPath -NoTypeInformation -Append -Encoding UTF8
-    } else {
-        $DailyRow | Export-Csv -Path $DailyPath -NoTypeInformation -Encoding UTF8
-    }
-
-    return $DailyRow
 }
 
 function Write-DailyAggregateMarkdownRow {
@@ -222,17 +223,68 @@ function Write-DailyAggregateMarkdownRow {
         New-Item -ItemType Directory -Path $dir | Out-Null
     }
 
-    if (-not (Test-Path $MarkdownPath)) {
+    $hasKColumns = $false
+    if (Test-Path $MarkdownPath) {
+        $hasKColumns = Select-String -Path $MarkdownPath -Pattern 'Total Visible Tokens \(K\)|Session Visible Tokens \(K\)|Estimated Cost \(USD\)' -Quiet
+    }
+
+    if ((Test-Path $MarkdownPath) -and (-not $hasKColumns)) {
+        $legacyLines = Get-Content -Path $MarkdownPath -Encoding UTF8
+        $convertedRows = @()
+
+        foreach ($ln in $legacyLines) {
+            if ($ln -match '^\|\s*\d{4}-\d{2}-\d{2}\s*\|') {
+                $parts = @($ln.Split('|') | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' })
+                if ($parts.Count -ge 10) {
+                    $date = $parts[0]
+                    $generatedAt = $parts[1]
+                    $runs = $parts[2]
+                    $totalVisibleK = [math]::Round((Convert-ToDoubleSafe -Value $parts[3]) / 1000.0, 2)
+                    $totalMinK = [math]::Round((Convert-ToDoubleSafe -Value $parts[4]) / 1000.0, 2)
+                    $totalMaxK = [math]::Round((Convert-ToDoubleSafe -Value $parts[5]) / 1000.0, 2)
+                    $totalCostUsd = [math]::Round((Convert-ToDoubleSafe -Value $parts[6]), 2)
+                    $sessionRuns = $parts[7]
+                    $sessionVisibleK = [math]::Round((Convert-ToDoubleSafe -Value $parts[8]) / 1000.0, 2)
+                    $sessionCostUsd = [math]::Round((Convert-ToDoubleSafe -Value $parts[9]), 2)
+
+                    $convertedRows += "| $date | $generatedAt | $runs | $totalVisibleK | $totalMinK | $totalMaxK | $totalCostUsd | $sessionRuns | $sessionVisibleK | $sessionCostUsd |"
+                }
+            }
+        }
+
         @(
             '# Token Usage Daily Aggregate'
             ''
-            '| Date | Generated At | Runs | Total Visible Tokens | Total Tokens Min | Total Tokens Max | Total Estimated Cost |'
-            '|---|---|---:|---:|---:|---:|---:|'
+            '| Date | Generated At | Runs | Total Visible Tokens (K) | Total Tokens Min (K) | Total Tokens Max (K) | Total Estimated Cost (USD) | Session Runs | Session Visible Tokens (K) | Session Estimated Cost (USD) |'
+            '|---|---|---:|---:|---:|---:|---:|---:|---:|---:|'
+        ) + $convertedRows | Out-File -FilePath $MarkdownPath -Encoding UTF8
+
+        $hasKColumns = $true
+    }
+
+    if (-not (Test-Path $MarkdownPath) -or (-not $hasKColumns)) {
+        @(
+            '# Token Usage Daily Aggregate'
+            ''
+            '| Date | Generated At | Runs | Total Visible Tokens (K) | Total Tokens Min (K) | Total Tokens Max (K) | Total Estimated Cost (USD) | Session Runs | Session Visible Tokens (K) | Session Estimated Cost (USD) |'
+            '|---|---|---:|---:|---:|---:|---:|---:|---:|---:|'
         ) | Out-File -FilePath $MarkdownPath -Encoding UTF8
     }
 
-    $line = "| $($DailyRow.date) | $($DailyRow.generated_at) | $($DailyRow.runs) | $($DailyRow.total_visible_tokens) | $($DailyRow.total_tokens_min) | $($DailyRow.total_tokens_max) | $($DailyRow.total_estimated_cost) |"
-    Add-Content -Path $MarkdownPath -Value $line
+    $fmt = [System.Globalization.CultureInfo]::InvariantCulture
+    $totalVisibleK = ([double]$DailyRow.total_visible_tokens_k).ToString('F2', $fmt)
+    $totalMinK = ([double]$DailyRow.total_tokens_min_k).ToString('F2', $fmt)
+    $totalMaxK = ([double]$DailyRow.total_tokens_max_k).ToString('F2', $fmt)
+    $totalCostUsd = ([double]$DailyRow.total_estimated_cost_usd).ToString('F2', $fmt)
+    $sessionVisibleK = ([double]$DailyRow.session_visible_tokens_k).ToString('F2', $fmt)
+    $sessionCostUsd = ([double]$DailyRow.session_estimated_cost_usd).ToString('F2', $fmt)
+
+    $line = "| $($DailyRow.date) | $($DailyRow.generated_at) | $($DailyRow.runs) | $totalVisibleK | $totalMinK | $totalMaxK | $totalCostUsd | $($DailyRow.session_runs) | $sessionVisibleK | $sessionCostUsd |"
+    $existing = Get-Content -Path $MarkdownPath -Encoding UTF8
+    $datePattern = '^\|\s*' + [regex]::Escape($DailyRow.date) + '\s*\|'
+    $kept = @($existing | Where-Object { $_ -notmatch $datePattern })
+    $updated = @($kept + $line)
+    $updated | Out-File -FilePath $MarkdownPath -Encoding UTF8
 }
 
 function Test-IsAfterDailyCutoff {
@@ -244,18 +296,6 @@ function Test-IsAfterDailyCutoff {
     }
 
     return ((Get-Date).TimeOfDay -ge $ts)
-}
-
-function Test-DailyCsvHasDate {
-    param(
-        [string]$Path,
-        [string]$DateKey
-    )
-
-    if (-not (Test-Path $Path)) { return $false }
-    $rows = @(Import-Csv -Path $Path)
-    if ($rows.Count -eq 0) { return $false }
-    return ($rows | Where-Object { $_.date -eq $DateKey } | Select-Object -First 1) -ne $null
 }
 
 function Test-DailyMarkdownHasDate {
@@ -441,9 +481,9 @@ if ($cost.has_rates) {
     Write-Output "Estimated cost ($ModelName, basis=$CostBasis):"
     Write-Output "- Input tokens for cost: $inputForCost"
     Write-Output "- Output tokens for cost: $outputForCost"
-    Write-Output "- Input cost: $($result.cost_input)"
-    Write-Output "- Output cost: $($result.cost_output)"
-    Write-Output "- Total cost: $($result.cost_total)"
+    Write-Output ("- Input cost (USD): {0:F2}" -f [double]$result.cost_input)
+    Write-Output ("- Output cost (USD): {0:F2}" -f [double]$result.cost_output)
+    Write-Output ("- Total cost (USD): {0:F2}" -f [double]$result.cost_total)
 }
 
 if ($JsonPath) {
@@ -455,39 +495,6 @@ if ($JsonPath) {
     Add-Content -Path $JsonPath -Value $jsonLine -Encoding UTF8
     Write-Output ""
     Write-Output "Log JSON: $JsonPath"
-
-    if ($AppendDailyAggregate) {
-        $dailyPathResolved = if ($DailyAggregateCsvPath) { $DailyAggregateCsvPath } else { '.github/reports/token-usage-daily-aggregate.csv' }
-        $todayKey = (Get-Date).ToString('yyyy-MM-dd')
-        $canWriteDaily = $true
-
-        if ($DailyCloseMode -and (-not (Test-IsAfterDailyCutoff -Cutoff $DailyCloseTime))) {
-            $canWriteDaily = $false
-            Write-Output ""
-            Write-Output "Daily close mode: aun no se alcanza la hora de cierre ($DailyCloseTime)."
-        }
-
-        if ($canWriteDaily -and $DailyCloseMode -and (Test-DailyCsvHasDate -Path $dailyPathResolved -DateKey $todayKey)) {
-            $canWriteDaily = $false
-            Write-Output ""
-            Write-Output "Daily close mode: ya existe fila para $todayKey en $dailyPathResolved."
-        }
-
-        $daily = $null
-        if ($canWriteDaily) {
-            $daily = Get-DailyAggregateRow -HistoryPath $JsonPath -DateKey $todayKey
-            $daily = Write-DailyAggregateRow -DailyPath $dailyPathResolved -DailyRow $daily
-        }
-
-        if ($null -ne $daily) {
-            Write-Output ""
-            Write-Output "Daily aggregate appended: $dailyPathResolved"
-            Write-Output "- Date: $($daily.date)"
-            Write-Output "- Runs today: $($daily.runs)"
-            Write-Output "- Total visible tokens today: $($daily.total_visible_tokens)"
-            Write-Output "- Total estimated cost today: $($daily.total_estimated_cost)"
-        }
-    }
 
     if ($AppendDailyAggregateMarkdown) {
         $todayKey = (Get-Date).ToString('yyyy-MM-dd')
@@ -508,7 +515,7 @@ if ($JsonPath) {
 
         $dailyForMd = $null
         if ($canWriteMdDaily) {
-            $dailyForMd = Get-DailyAggregateRow -HistoryPath $JsonPath -DateKey $todayKey
+            $dailyForMd = Get-DailyAggregateRow -HistoryPath $JsonPath -DateKey $todayKey -SessionId $resolvedSessionId
         }
 
         if ($null -ne $dailyForMd) {
@@ -517,8 +524,13 @@ if ($JsonPath) {
             Write-Output "Daily aggregate markdown appended: $dailyMdPathResolved"
             Write-Output "- Date: $($dailyForMd.date)"
             Write-Output "- Runs today: $($dailyForMd.runs)"
-            Write-Output "- Total visible tokens today: $($dailyForMd.total_visible_tokens)"
-            Write-Output "- Total estimated cost today: $($dailyForMd.total_estimated_cost)"
+            Write-Output "- Total visible tokens today (K): $($dailyForMd.total_visible_tokens_k)"
+            Write-Output ("- Total estimated cost today (USD): {0:F2}" -f [double]$dailyForMd.total_estimated_cost_usd)
+            if (-not [string]::IsNullOrWhiteSpace($resolvedSessionId)) {
+                Write-Output "- Session runs: $($dailyForMd.session_runs)"
+                Write-Output "- Session visible tokens (acc, K): $($dailyForMd.session_visible_tokens_k)"
+                Write-Output ("- Session estimated cost (acc, USD): {0:F2}" -f [double]$dailyForMd.session_estimated_cost_usd)
+            }
         }
     }
 
@@ -544,7 +556,7 @@ if ($JsonPath) {
                 Write-Output "- Runs: $($last7.Count)"
                 Write-Output "- Visible tokens: $([math]::Round($sumVisible,0))"
                 Write-Output "- Estimated total tokens (max): $([math]::Round($sumMax,0))"
-                Write-Output "- Total estimated cost: $([math]::Round($sumCost,6))"
+                Write-Output ("- Total estimated cost (USD): {0:F2}" -f ([math]::Round($sumCost,2)))
             }
         }
     }
