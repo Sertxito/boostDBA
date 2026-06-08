@@ -150,6 +150,63 @@ No se define un script wizard obligatorio. El flujo se ejecuta desde onboarding 
 - Debe detenerse y pedir revision humana antes de generar `.docx`
 - No debe generar `.docx` si falta cualquier artefacto de fuente de verdad, reportes o planes
 
+## Orden Lógico de Generación de Planes (OBLIGATORIO)
+
+**El Orquestador DEBE generar planes numerados en secuencia ejecutiva, no aleatorio:**
+
+### PLANES (00-12)
+- **00-PLAN-ACCION-90-DIAS.md** — Master plan: waves, milestones, timeline completo
+- **01-ANALISIS-SPOF-CRIPTO.md** — Análisis SPOF: circuit-breaker, credential management
+- **02-bi-CLASIFICACION-SCHEMA.md** — BI schema mapping + matriz de complejidad
+- **03-CHECKLIST-ACCIONES-SEMANA1.md** — Week 1 blockers: qué hacer día 1-5
+- **04-CLASIFICACION-COMPLETA-SPS.md** — Inventario 6,357 SPs por criticidad
+- **05-DIAGNOSTICO-COMPLETO.md** — Full assessment: 360 view de todos los hallazgos
+- **06-DIAGNOSTICO-CUELLOS-BOTELLA.md** — Performance diagnosis: DMVs + query plans
+- **07-EJECUTIVO-1PAGER.md** — One-pager para liderazgo: decisiones + ROI
+- **08-MATRIZ-IMPACTO-MULTIDOMINIO.md** — Cross-domain impact matrix
+- **09-PLAN-MIGRACION-CSHARP.md** — C#/.NET migration: Strangler Fig, DDD patterns
+- **10-PLAYBOOK-REMEDIACION.md** — Operational runbooks + scripts
+- **11-RESUMEN-CUELLOS-BOTELLA-SCHEMA.md** — Bottleneck summary per schema
+- **12-ROADMAP-MITIGACION.md** — Roadmap 6-12 meses post-Wave 0
+
+**REGLA:** Generar EN ESTE ORDEN. Cada plan es entrada para el siguiente.
+
+## Orden Lógico de Generación de Reportes (OBLIGATORIO)
+
+**El Orquestador DEBE generar reportes numerados en flujo de lectura coherente, no aleatorio:**
+
+### FASE 1: Contexto & Entrada (00-02)
+- **00-RESUMEN-EJECUTIVO.md** — 1-pager: hallazgos críticos, ROI, decisiones requeridas
+- **01-OVERVIEW-DEPENDENCIAS.md** — Arquitectura (tablas, FKs, SPs, criticidad)
+- **02-PLAN-ACCION.md** — Qué hacer: waves, timeline, roadmap
+
+### FASE 2: Riesgos Prioritarios (03-06)
+- **03-CADENA-CRIPTO-CRITICA.md** — Riesgo #1: SPOF, bloqueadores (T_DECRYPT, OPEN SYMMETRIC KEY)
+- **04-DOMINIOS-LOGICA-NEGOCIO.md** — Lógica de negocio: 5+ dominios extraídos de SPs
+- **05-EXTRACCION-LOGICA-LEGACY.md** — SPs críticas con lógica oculta a extraer
+- **06-OPORTUNIDADES-MODERNIZACION.md** — Modernización: Strangler Fig, waves, timeline
+
+### FASE 3: Análisis Técnicos Prioritarios (07-13)
+- **07-ANALISIS-ALTA-DISPONIBILIDAD.md** — HA/DR status (RTO, RPO, AlwaysOn gap)
+- **08-ANALISIS-CAPACIDAD.md** — Proyección (3-6 meses, autogrowth state)
+- **09-AUDITORIA-SEGURIDAD-CONFIABILIDAD.md** — Score 1-10, gaps (GDPR, PCI-DSS, ISO 27001)
+- **10-ANALISIS-BASELINE-MONITOREO.md** — Métricas normales vs. anómalas
+- **11-ANALISIS-JOBS-AUTOMATIZACION.md** — SQL Agent auditoría, fallos, dependencias
+- **12-ANALISIS-MULTIPLATAFORMA.md** — Opciones: Azure SQL, PostgreSQL, Cosmos DB
+- **13-ANALISIS-SCRIPTS-MIGRACION.md** — DDL/DML con rollback
+
+### FASE 4: Análisis Técnicos Detallados (14-21)
+- **14-DOCUMENTACION-BD.md** — Schemas, tablas, SPs documentadas
+- **15-EVALUACION-IMPACTO.md** — Impacto de cambios propuestos
+- **16-MATRIZ-IMPACTO-TECNICA.md** — Matriz de dependencias + severidad
+- **17-OFERTA25-CONSOLIDADO-DBA-360-COMPLETO.md** — Resumen master con todas las fuentes
+- **18-PLAN-MANTENIMIENTO-PROACTIVO.md** — Índices, estadísticas, fragmentación
+- **19-REPORTE-GENERACION-DATOS-PRUEBA.md** — Test data anonimizado
+- **20-RESUMEN-EJECUTIVO-AUDITORIA-SEGURIDAD.md** — Security 1-pager
+- **21-RESUMEN-IMPACTO-EJECUTIVO.md** — Conclusión + próximos pasos
+
+**REGLA:** Generar EN ESTE ORDEN. Cada reporte numerado (00-21) es una función del flujo narrativo, no del orden generado por los agentes especializados.
+
 ## Casos de Uso
 - "Inicializa el proyecto y haz una evaluacion DBA completa"
 - "Tenemos degradacion y riesgo operativo, necesito plan 90 dias"
