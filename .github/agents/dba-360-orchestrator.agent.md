@@ -205,10 +205,10 @@ No se define un asistente obligatorio. El flujo se ejecuta desde la incorporaci�
 - **20-RESUMEN-EJECUTIVO-AUDITORIA-SEGURIDAD.md** — Resumen de seguridad en una página
 - **21-RESUMEN-IMPACTO-EJECUTIVO.md** — Conclusión + próximos pasos
 
-### FASE 5: Compuerta de Aprobación Humana (22)
-- **22-COMPUERTA-APROBACION-HUMANA-OFERTA25-COMPLETO.md** — ⚠️ COMPUERTA DE APROBACIÓN HUMANA: lista de verificación de completitud (9 artefactos, 22 reportes, 13 planes, 5 documentos), compuertas de seguridad, métricas, y 3 opciones de decisión
+### FASE 5: Aprobación Final (22)
+- **22-APROBACION-FINAL-OFERTA25.md** — ⚠️ APROBACIÓN FINAL: lista de verificación de completitud (9 artefactos, 22 reportes, 13 planes, 5 documentos), compuertas de seguridad, métricas, y 3 opciones de decisión
 
-**REGLA:** Generar EN ESTE ORDEN. Cada reporte numerado (00-22) es una función del flujo narrativo, no del orden generado por los agentes especializados. El reporte 22 (Compuerta de Aprobación Humana) es el STOP obligatorio antes de cerrar el proyecto.
+**REGLA:** Generar EN ESTE ORDEN. Cada reporte numerado (00-22) es una función del flujo narrativo, no del orden generado por los agentes especializados. El reporte 22 (Aprobación Final) es el STOP obligatorio antes de cerrar el proyecto.
 
 ## Casos de Uso
 - "Inicializa el proyecto y haz una evaluacion DBA completa"

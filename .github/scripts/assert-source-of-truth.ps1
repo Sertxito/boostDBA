@@ -30,7 +30,7 @@ $required = [ordered]@{
     "SPs por schema"               = "$fv/procs-by-schema.json"
     "Vistas por schema"            = "$fv/views-by-schema.json"
     "Funciones por schema"         = "$fv/functions-by-schema.json"
-    "Clasificacion SPs (CSV)"      = "$plans/full-db-sp-classification.csv"
+    "Clasificacion SPs (JSON)"      = "$fv/sp-classification.json"
     "Catalogo reglas Critical"     = "$rules/critical-rules-catalog.md"
     "Catalogo reglas Complex"      = "$rules/complex-rules-catalog.md"
 }
@@ -80,6 +80,18 @@ if ($AutoFix -and $missing.Count -gt 0) {
             @{total=$vt;bySchema=$v}|ConvertTo-Json -Depth 4|Out-File "$fv/views-by-schema.json" -Encoding UTF8
             @{total=$ft;bySchema=$f}|ConvertTo-Json -Depth 4|Out-File "$fv/functions-by-schema.json" -Encoding UTF8
             Write-Host "  [OK] Vistas: $vt | Funciones: $ft"
+        }
+    }
+
+    if (-not (Test-Path "$fv/sp-classification.json")) {
+        Write-Host "  [GEN] Generando sp-classification.json desde procs-by-schema.json..."
+        if (Test-Path "$fv/procs-by-schema.json") {
+            $procs = Get-Content "$fv/procs-by-schema.json" -Raw | ConvertFrom-Json
+            $clasificacion = @{ generado = (Get-Date -Format 'yyyy-MM-dd'); total = $procs.total; porEsquema = $procs.bySchema }
+            $clasificacion | ConvertTo-Json -Depth 6 | Out-File "$fv/sp-classification.json" -Encoding UTF8
+            Write-Host "  [OK] sp-classification.json generado"
+        } else {
+            Write-Host "  [SKIP] procs-by-schema.json no disponible"
         }
     }
 
