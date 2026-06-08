@@ -30,6 +30,14 @@ $schemaPath = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
 $csvPath    = "workspaces/$proyecto/plans/full-db-sp-classification.csv"
 $rulesDir   = "workspaces/$proyecto/reports/business-rules"
 
+
+# GATE 1: fuente de verdad completa (hard stop si falta algún artefacto)
+pwsh -File .github/scripts/assert-source-of-truth.ps1
+if ($LASTEXITCODE -ne 0) { Write-Error 'Fuente de verdad incompleta. Ejecuta onboarding primero.'; exit 1 }
+
+# GATE 2: seguridad (hard stop si hay secretos o data leak)
+pwsh -File .github/scripts/security-preflight.ps1
+if ($LASTEXITCODE -ne 0) { Write-Error 'Preflight de seguridad FAIL. Sanear antes de analizar.'; exit 1 }
 # OBLIGATORIO: si los catálogos no existen, generarlos antes de cualquier análisis
 if (-not (Test-Path "$rulesDir/critical-rules-catalog.md")) {
     Write-Host "Generando catálogo Critical..."

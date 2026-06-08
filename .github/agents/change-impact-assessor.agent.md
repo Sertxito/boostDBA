@@ -27,8 +27,24 @@ Antes de tocar producción, analiza qué se romperá, cuáles pruebas ejecutar, 
 ```powershell
 $proyecto = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
 $schemaPath = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
+
+# GATE 1: fuente de verdad completa (hard stop si falta algún artefacto)
+pwsh -File .github/scripts/assert-source-of-truth.ps1
+if ($LASTEXITCODE -ne 0) { Write-Error 'Fuente de verdad incompleta. Ejecuta onboarding primero.'; exit 1 }
+
+# GATE 2: seguridad (hard stop si hay secretos o data leak)
+pwsh -File .github/scripts/security-preflight.ps1
+if ($LASTEXITCODE -ne 0) { Write-Error 'Preflight de seguridad FAIL. Sanear antes de analizar.'; exit 1 }
 $rulesDir   = "workspaces/$proyecto/reports/business-rules"
 
+
+# GATE 1: fuente de verdad completa (hard stop si falta algún artefacto)
+pwsh -File .github/scripts/assert-source-of-truth.ps1
+if ($LASTEXITCODE -ne 0) { Write-Error 'Fuente de verdad incompleta. Ejecuta onboarding primero.'; exit 1 }
+
+# GATE 2: seguridad (hard stop si hay secretos o data leak)
+pwsh -File .github/scripts/security-preflight.ps1
+if ($LASTEXITCODE -ne 0) { Write-Error 'Preflight de seguridad FAIL. Sanear antes de analizar.'; exit 1 }
 # OBLIGATORIO: si los catálogos no existen, generarlos antes de evaluar impacto
 if (-not (Test-Path "$rulesDir/critical-rules-catalog.md")) {
     pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Critical
