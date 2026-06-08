@@ -23,14 +23,18 @@ Antes de tocar producción, analiza qué se romperá, cuáles pruebas ejecutar, 
 
 **El impacto real se evalúa leyendo el código SQL de los SPs afectados, no estimando por el nombre o descripción.**
 
+### Paso 0: Descubrir el proyecto activo
+```powershell
+$proyecto = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
+$schemaPath = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
+```
+
 ### Para cada objeto afectado por el cambio propuesto:
 ```powershell
-# 1. Identificar todos los SPs que referencian el objeto
-Select-String -Path "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" -Pattern "NOMBRE_TABLA_O_SP" | 
-  Select-Object LineNumber, Line | Where-Object { $_.Line -match 'PROCEDURE|FUNCTION' }
-
-# 2. Leer el contexto exacto donde se usa
-Get-Content "schema/db.sql" | Select-Object -Skip ($lineNum - 5) -First 30
+# Encontrar todos los SPs que referencian el objeto
+Select-String -Path $schemaPath -Pattern "NOMBRE_TABLA_O_SP" | Select-Object LineNumber, Line
+# Leer el contexto exacto donde se usa
+Get-Content $schemaPath | Select-Object -Skip ($lineNum - 5) -First 30
 ```
 
 ### Niveles de impacto con evidencia SQL

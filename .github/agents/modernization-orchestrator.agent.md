@@ -35,14 +35,25 @@ Orquestador maestro que coordina el viaje completo de DB Boost: analizando depen
 
 **Toda decisión de modernización se basa en leer el código real de los SPs, no en nombres, clasificaciones o metadata. Sin código leído = sin decisión.**
 
-### Proceso antes de proponer migración de cualquier SP
-1. Localizar en `fuente-de-verdad/schema/db.sql`:
+### Paso 0: Descubrir el proyecto activo y cargar catálogo
 ```powershell
-Select-String -Path "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" -Pattern "NOMBRE_SP" | Select-Object -First 3 LineNumber
+$proyecto = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
+$schemaPath = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
+$csvPath = "workspaces/$proyecto/plans/full-db-sp-classification.csv"
+$catalogPath = "workspaces/$proyecto/reports/business-rules/critical-rules-catalog.md"
+
+# Si el catálogo no existe, generarlo primero:
+if (-not (Test-Path $catalogPath)) {
+    pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Critical
+}
 ```
-2. Leer el cuerpo completo (mínimo 300 líneas)
-3. Identificar: tipo de lógica, tablas afectadas, magic numbers, cifrado, SQL dinámico
-4. Solo entonces proponer la estrategia de migración
+
+### Para cada SP a migrar:
+```powershell
+# Localizar en schema y leer el cuerpo completo (mínimo 300 líneas)
+Select-String -Path $schemaPath -Pattern "NOMBRE_SP" | Select-Object -First 3 LineNumber
+Get-Content $schemaPath | Select-Object -Skip ($lineNum - 1) -First 350
+```
 
 **La clasificación CRUD/Simple/Complex/Critical del CSV es un punto de partida, NO es la evaluación.**
 

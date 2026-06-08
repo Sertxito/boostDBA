@@ -23,13 +23,19 @@ Mapea y visualiza dependencias complejas en entornos heredados de SQL Server, id
 
 **Las dependencias se confirman leyendo el SQL real, no solo de `sys.sql_expression_dependencies` (que no captura SQL dinámico ni dependencias runtime).**
 
+### Paso 0: Descubrir el proyecto activo
+```powershell
+$proyecto = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
+$schemaPath = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
+```
+
 ### Para dependencias desde fuente local
 ```powershell
-# 1. Localizar el SP en el schema
-Select-String -Path "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" -Pattern "NOMBRE_SP" | Select-Object -First 3 LineNumber
+# 1. Buscar todos los SPs que referencian un objeto
+Select-String -Path $schemaPath -Pattern "NOMBRE_TABLA_O_SP" | Select-Object LineNumber, Line
 
-# 2. Leer el cuerpo y extraer referencias a otros objetos
-Get-Content "schema/db.sql" | Select-Object -Skip ($line - 1) -First 400 | Select-String -Pattern "FROM |JOIN |EXEC |INSERT INTO |UPDATE |DELETE FROM |MERGE "
+# 2. Leer el contexto exacto donde se usa
+Get-Content $schemaPath | Select-Object -Skip ($lineNum - 5) -First 30
 ```
 
 ### Tipos de dependencias a detectar

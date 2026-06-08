@@ -23,11 +23,52 @@ Descubre y extrae lógica de negocio dispersa en stored procedures, documentando
 
 **NUNCA inferir reglas de negocio por el nombre del SP o su descripción de encabezado. SIEMPRE leer el cuerpo SQL completo.**
 
-### Paso 1: Localizar el SP en el schema local
+### Paso 0: Descubrir el proyecto activo
+```powershell
+# El proyecto activo es el directorio que existe bajo workspaces/
+$proyecto = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
+$schemaPath = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
+$csvPath = "workspaces/$proyecto/plans/full-db-sp-classification.csv"
+Write-Host "Proyecto: $proyecto — Schema: $schemaPath"
+```
+Si hay más de un proyecto en `workspaces/`, preguntar al usuario cuál analizar.
+
+### Paso 1: Extracción masiva automática (para grupos de SPs)
+```powershell
+# Para los 339 Critical SPs, ejecutar el script de extracción masiva:
+pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Critical
+# Resultado en: workspaces/$proyecto/reports/business-rules/critical-rules-catalog.md
+```
+El catálogo resultante tiene el cuerpo SQL de cada SP con patrones detectados. Usarlo como base.
+
+### Paso 2: Lectura profunda individual (para SPs específicos)
 ```powershell
 # Localizar número de línea exacto
-Select-String -Path "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" -Pattern "NOMBRE_SP" | Select-Object -First 5 LineNumber, Line
+Select-String -Path $schemaPath -Pattern "NOMBRE_SP" | Select-Object -First 5 LineNumber, Line
+# Leer el cuerpo
+Get-Content $schemaPath | Select-Object -Skip ($lineNum - 1) -First 400
 ```
+
+### Paso 3: Por cada SP analizado, documentar con esta plantilla
+- **SP de origen**: `schema.NombreSP` (línea N en schema)
+- **Descripción real** (de la cabecera del SP, no inventada)
+- **Fragmento SQL clave** (el código que implementa la regla, copiado literalmente)
+- **Valores/umbrales hardcoded** encontrados en el código
+- **Estados y transiciones** si hay máquinas de estado
+- **Dependencias reales**: tablas leídas/escritas, SPs llamados
+- **Preguntas abiertas**: lo que el código no deja claro y requiere validación con negocio
+
+### Señales de reglas de negocio en SQL
+| Patrón | Tipo de regla |
+|---|---|
+| `CASE WHEN estado = N THEN` | Máquina de estados |
+| `DecryptByKey(campo)` | Datos sensibles protegidos |
+| `EXEC UP_V_ABRIR_LLAVE` | Acceso a datos cifrados (GDPR) |
+| `ID_DICCIONARIO_CONFIG = N` | Configuración por convocatoria |
+| `IN ('CODE1','CODE2',...)` | Códigos de causa/tipo |
+| `WHILE @Nivel > 0` | Propagación jerárquica |
+| `B_EXCESO = 1 AND ID_TIPOEXCESO = N` | Excesos regulatorios |
+| Constantes numéricas (65535, 498, etc.) | Magic numbers = reglas hardcoded |
 
 ### Paso 2: Leer el cuerpo completo
 ```powershell

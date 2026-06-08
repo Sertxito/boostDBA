@@ -24,12 +24,41 @@ Crea "la documentación que nadie escribió" analizando stored procedures, tabla
 
 **La documentación se genera leyendo el código SQL real, no infiriendo por nombres ni metadatos de catálogo.**
 
-### Fuente de verdad local
-Cuando existe `workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql`, ese es el schema canónico. Localizar cada objeto:
+### Paso 0: Descubrir el proyecto activo
 ```powershell
-Select-String -Path "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" -Pattern "NOMBRE_OBJETO" | Select-Object -First 5 LineNumber, Line
+$proyecto = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
+$schemaPath = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
+$csvPath = "workspaces/$proyecto/plans/full-db-sp-classification.csv"
 ```
-Luego leer el cuerpo completo para documentar la realidad, no la intención.
+
+### Para extracción masiva (grupos de SPs)
+```powershell
+# Genera catálogo completo de todos los Critical con patrones detectados
+pwsh -File .github/scripts/extract-critical-business-rules.ps1 -Category Critical
+# Resultado: workspaces/$proyecto/reports/business-rules/critical-rules-catalog.md
+```
+
+### Para documentación individual de un SP
+```powershell
+# Localizar y leer el cuerpo real
+Select-String -Path $schemaPath -Pattern "NOMBRE_OBJETO" | Select-Object -First 5 LineNumber, Line
+Get-Content $schemaPath | Select-Object -Skip ($lineNum - 1) -First 400
+```
+
+### Plantilla de documentación de SP (con código real)
+```markdown
+## schema.NombreSP (línea N en schema)
+**Propósito real**: [extraído de cabecera + lógica del cuerpo, no inventado]
+**Parámetros**: [de la firma real del SP]
+**Lógica clave**:
+\`\`\`sql
+-- Fragmento real del SP que muestra la regla principal
+\`\`\`
+**Tablas leídas**: [de los JOIN/FROM del cuerpo]
+**Tablas escritas**: [de los INSERT/UPDATE/DELETE/MERGE del cuerpo]
+**Magic numbers encontrados**: [constantes numéricas con su significado]
+**Preguntas abiertas**: [lo ambiguo en el código]
+```
 
 ### Plantilla de documentación de SP (con código real)
 ```markdown
