@@ -205,7 +205,10 @@ No se define un script wizard obligatorio. El flujo se ejecuta desde onboarding 
 - **20-RESUMEN-EJECUTIVO-AUDITORIA-SEGURIDAD.md** — Security 1-pager
 - **21-RESUMEN-IMPACTO-EJECUTIVO.md** — Conclusión + próximos pasos
 
-**REGLA:** Generar EN ESTE ORDEN. Cada reporte numerado (00-21) es una función del flujo narrativo, no del orden generado por los agentes especializados.
+### FASE 5: HITL Gate (22)
+- **22-HITL-GATE-FINAL.md** — ⚠️ COMPUERTA DE APROBACIÓN HUMANA: checklist de completitud (9 artefactos, 22 reportes, 13 planes, 5 docx), security gates, métricas, y 3 opciones de decisión
+
+**REGLA:** Generar EN ESTE ORDEN. Cada reporte numerado (00-22) es una función del flujo narrativo, no del orden generado por los agentes especializados. El reporte 22 (HITL Gate) es el STOP obligatorio antes de cerrar el proyecto.
 
 ## Casos de Uso
 - "Inicializa el proyecto y haz una evaluacion DBA completa"
