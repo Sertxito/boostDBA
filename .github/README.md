@@ -31,13 +31,19 @@ Usar todos los agentes especializados en auditorías amplias, programas de moder
 
 Si no hay trigger claro, permanecer en Modo Lean.
 
-## Flujo de Anonimización en Onboarding (Nuevo)
+## Flujo de Anonimización en Onboarding
 
 Al inicializar un workspace con `run-dba360-wizard.ps1`, ahora se puede elegir modo de anonimización:
 
 - `-Anonymize ask` (por defecto): pregunta interactiva al inicio del wizard.
 - `-Anonymize yes`: anonimiza de extremo a extremo.
 - `-Anonymize no`: mantiene nombres/identificadores reales.
+
+### Compuerta obligatoria de decisión
+
+- La decisión de anonimización es obligatoria al iniciar el proyecto.
+- En modo interactivo, `ask` fuerza pregunta al usuario.
+- En ejecuciones no interactivas, se debe pasar explícitamente `-Anonymize yes` o `-Anonymize no`.
 
 ### Comandos rápidos
 
@@ -65,7 +71,8 @@ pwsh -File .github/scripts/run-dba360-wizard.ps1 -ProjectName "MiProyecto" -Sche
     - `anonymizationEnabled: true`
     - `anonymizationMode: "full"`
     - `anonymizationMappings: <ruta al mapping consolidado>`
-3. Antes de exportar Word (`export-report.ps1`) sanea automáticamente artefactos de entrega si el manifest está en modo anonimizado.
+3. Antes de exportar Word (`export-report.ps1`) sanea automáticamente artefactos en root del workspace, `reports/`, `plans/` y `entrega/` si el manifest está en modo anonimizado.
+4. Además, los scripts de generación de artefactos vuelven a aplicar saneado al terminar para mantener `reports/`, `plans/` y `entrega/` ya anonimizados durante todo el flujo (no solo en el export).
 
 ### Comportamiento esperado
 

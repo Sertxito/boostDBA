@@ -23,12 +23,12 @@ switch ($Anonymize) {
     'yes' { $anonymizeEnabled = $true }
     'no'  { $anonymizeEnabled = $false }
     default {
-        # Prompt only when interactive; fallback to no anonymization in non-interactive runs.
+        # Decision gate is mandatory: in non-interactive mode caller must set -Anonymize yes|no.
         if ($Host.Name -and $Host.Name -ne 'ServerRemoteHost') {
             $answer = Read-Host "¿Quieres anonimizar la BBDD y todos los artefactos derivados del workspace? (s/N)"
             $anonymizeEnabled = $answer -match '^(s|si|y|yes)$'
         } else {
-            $anonymizeEnabled = $false
+            throw "Decision de anonimización obligatoria: usa -Anonymize yes o -Anonymize no en ejecuciones no interactivas."
         }
     }
 }

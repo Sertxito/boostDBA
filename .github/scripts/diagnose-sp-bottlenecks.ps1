@@ -332,3 +332,17 @@ Write-Host "✅ Informe resumen exportado a FASE2-RESUMEN.md" -ForegroundColor G
 Write-Host "`n✅ Validacion de fase 2 completada" -ForegroundColor Green
 Write-Host "📂 Informes disponibles en: $OutputDir" -ForegroundColor Green
 
+$resolvedOutDir = (Resolve-Path $OutputDir).Path
+$projectName = $null
+if ($resolvedOutDir -match '[\\/]workspaces[\\/](?<project>[^\\/]+)[\\/]') {
+  $projectName = $matches['project']
+}
+
+if ($projectName) {
+  $anonymizeScript = Join-Path $PSScriptRoot 'apply-artifact-anonymization.ps1'
+  if (Test-Path $anonymizeScript) {
+    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
+    & $anonymizeScript -ProjectName $projectName -Scope all -Root $repoRoot
+  }
+}
+

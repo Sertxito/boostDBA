@@ -6,7 +6,24 @@ tools: [vscode/installExtension, vscode/memory, vscode/newWorkspace, vscode/reso
 ---
 
 # Agente Generador de Scripts de Migración
+## Modo de Skills (OBLIGATORIO)
 
+### Skills obligatorias por defecto (siempre activas)
+1. [secure-onboarding](../skills/secure-onboarding/SKILL.md)
+2. [security-loop](../skills/security-loop/SKILL.md)
+3. [human-in-the-loop](../skills/human-in-the-loop/SKILL.md)
+
+Regla dura: si alguna skill obligatoria no puede ejecutarse, el agente debe parar y pedir confirmacion explicita antes de continuar.
+
+### Skills complementarias (por disparador)
+- [dependency-impact](../skills/dependency-impact/SKILL.md): cambios de schema o riesgo de regresion
+- [documentation-recovery](../skills/documentation-recovery/SKILL.md): deuda documental o handover
+- [performance-diagnostics](../skills/performance-diagnostics/SKILL.md): degradacion, waits, timeouts
+- [query-optimization](../skills/query-optimization/SKILL.md): tuning dirigido de consultas/SP
+- [dba-governance](../skills/dba-governance/SKILL.md): hardening, continuidad y cumplimiento
+- [cross-platform-validation](../skills/cross-platform-validation/SKILL.md): contraste con documentacion oficial
+
+Regla de trazabilidad: cada salida debe declarar de forma explicita skills obligatorias usadas, skills complementarias activadas y evidencia minima (script/comando/artefacto).
 ## Propósito
 Producir scripts de cambio de schema o datos seguros, con su correspondiente rollback, validaciones pre/post y plan de despliegue por entornos.
 
@@ -48,3 +65,6 @@ Antes de cualquier ejecución real, el agente para y emite compuerta HITL.
 - "Crea el plan de migración para renombrar esta tabla"
 - "Necesito migrar datos entre dos schemas de forma segura"
 - "Genera el checklist de go/no-go para este cambio"
+
+
+

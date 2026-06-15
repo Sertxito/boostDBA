@@ -18,7 +18,12 @@ if (-not (Test-Path $manifestPath)) {
 }
 
 $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
-if (-not $manifest.anonymizationEnabled) {
+$manifestAnonymized = $false
+if ($manifest.PSObject.Properties['anonymizationEnabled']) {
+    $manifestAnonymized = [bool]$manifest.anonymizationEnabled
+}
+
+if (-not $manifestAnonymized) {
     Write-Host "Anonimización desactivada en manifest. No se aplican cambios." -ForegroundColor Yellow
     return
 }
@@ -48,19 +53,25 @@ $regexReplacements = @(
 
 $targets = @()
 switch ($Scope) {
-    'reports' { $targets += Join-Path $workspace 'reports' }
-    'plans'   { $targets += Join-Path $workspace 'plans' }
-    'entrega' { $targets += Join-Path $workspace 'entrega' }
+    'reports' { $targets += [PSCustomObject]@{ Path = (Join-Path $workspace 'reports'); Recurse = $true } }
+    'plans'   { $targets += [PSCustomObject]@{ Path = (Join-Path $workspace 'plans'); Recurse = $true } }
+    'entrega' { $targets += [PSCustomObject]@{ Path = (Join-Path $workspace 'entrega'); Recurse = $true } }
     default {
-        $targets += Join-Path $workspace 'reports'
-        $targets += Join-Path $workspace 'plans'
-        $targets += Join-Path $workspace 'entrega'
+        # Include root masters (e.g. <Project>-INFORME-*.md) without walking source-of-truth recursively.
+        $targets += [PSCustomObject]@{ Path = $workspace; Recurse = $false }
+        $targets += [PSCustomObject]@{ Path = (Join-Path $workspace 'reports'); Recurse = $true }
+        $targets += [PSCustomObject]@{ Path = (Join-Path $workspace 'plans'); Recurse = $true }
+        $targets += [PSCustomObject]@{ Path = (Join-Path $workspace 'entrega'); Recurse = $true }
     }
 }
 
 $files = foreach ($t in $targets) {
-    if (Test-Path $t) {
-        Get-ChildItem -Path $t -Recurse -File -Include *.md, *.txt
+    if (Test-Path $t.Path) {
+        if ($t.Recurse) {
+            Get-ChildItem -Path $t.Path -Recurse -File -Include *.md, *.txt, *.json
+        } else {
+            Get-ChildItem -Path $t.Path -File -Include *.md, *.txt, *.json
+        }
     }
 }
 

@@ -202,3 +202,17 @@ Write-Host "JSON: $jsonPath"
 Write-Host "Resumen por esquema (JSON): $schemaSummaryPath"
 Write-Host "MD: $mdPath"
 
+$resolvedOutDir = (Resolve-Path $OutDir).Path
+$projectName = $null
+if ($resolvedOutDir -match '[\\/]workspaces[\\/](?<project>[^\\/]+)[\\/]') {
+    $projectName = $matches['project']
+}
+
+if ($projectName) {
+    $anonymizeScript = Join-Path $PSScriptRoot 'apply-artifact-anonymization.ps1'
+    if (Test-Path $anonymizeScript) {
+        $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
+        & $anonymizeScript -ProjectName $projectName -Scope all -Root $repoRoot
+    }
+}
+

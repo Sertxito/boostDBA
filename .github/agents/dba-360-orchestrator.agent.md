@@ -47,6 +47,25 @@ Este agente arranca y gobierna la incorporación end-to-end: desde inicializaci�
 
 ## Modos Operativos Recomendados
 
+## Modo de Skills (OBLIGATORIO)
+
+### Skills obligatorias por defecto (siempre activas)
+1. [secure-onboarding](../skills/secure-onboarding/SKILL.md)
+2. [security-loop](../skills/security-loop/SKILL.md)
+3. [human-in-the-loop](../skills/human-in-the-loop/SKILL.md)
+
+Regla dura: si alguna skill obligatoria no puede ejecutarse, el agente debe parar y pedir confirmacion explicita antes de continuar.
+
+### Skills complementarias (por disparador)
+- [dependency-impact](../skills/dependency-impact/SKILL.md): cambios de schema o riesgo de regresion
+- [documentation-recovery](../skills/documentation-recovery/SKILL.md): deuda documental o handover
+- [performance-diagnostics](../skills/performance-diagnostics/SKILL.md): degradacion, waits, timeouts
+- [query-optimization](../skills/query-optimization/SKILL.md): tuning dirigido de consultas/SP
+- [dba-governance](../skills/dba-governance/SKILL.md): hardening, continuidad y cumplimiento
+- [cross-platform-validation](../skills/cross-platform-validation/SKILL.md): contraste con documentacion oficial
+
+Regla de trazabilidad: cada salida debe declarar de forma explicita skills obligatorias usadas, skills complementarias activadas y evidencia minima (script/comando/artefacto).
+
 ### Regla de Inicio (obligatoria)
 La primera ejecución de cada proyecto debe ser en Modo Completo para construir una línea base de comportamiento completa, cobertura multi-dominio y artefactos iniciales de referencia.
 Desde la segunda ejecución, el modo por defecto pasa a Modo Ágil, activando especialistas solo por disparo.

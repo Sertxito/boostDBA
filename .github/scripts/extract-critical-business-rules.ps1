@@ -271,3 +271,9 @@ Write-Host ""
 Write-Host "Resultados guardados en:"
 Write-Host "  JSON: $jsonPath"
 Write-Host "  MD:   $mdPath"
+
+$anonymizeScript = Join-Path $PSScriptRoot 'apply-artifact-anonymization.ps1'
+if (Test-Path $anonymizeScript) {
+    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
+    & $anonymizeScript -ProjectName $ProjectName -Scope all -Root $repoRoot
+}
