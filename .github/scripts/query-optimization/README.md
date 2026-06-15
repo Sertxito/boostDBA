@@ -1,6 +1,6 @@
-# Query Optimization Framework — ProjectName
+# Marco de Optimizacion de Consultas — ProjectName
 
-**Scope:** 6.554 SPs | SQL Server 2017 | .NET 8 Dapper/EF stack  
+**Alcance:** 6.554 SPs | SQL Server 2017 | stack .NET 8 Dapper/EF  
 **Objetivo:** Reducir tiempo de respuesta y consumo de recursos sin cambios funcionales
 
 ---
@@ -11,8 +11,8 @@
 01-capture-baseline.sql        → Extrae métricas actuales (CPU, reads, waits)
         ↓
 02-index-recommendations.sql   → Genera DDL de índices faltantes, redundantes, fragmentados
-        ↓  [Aplicas el cambio aquí: índice, rewrite SP, o hint QS]
-03-golden-file-regression.ps1  → Captura antes y valida que el output no cambió
+        ↓  [Aplicas el cambio aquí: índice, reescritura de SP o sugerencia QS]
+      03-golden-file-regression.ps1  → Captura antes y valida que la salida no cambió
         ↓
 04-staged-rollout.ps1          → Orquesta DEV → STAGING → PROD con confirmación manual
 ```
@@ -26,7 +26,7 @@
 ```powershell
 cd c:\repo\BoostDBA
 
-# 1. Captura golden file (resultado esperado) en PROD
+# 1. Captura archivo golden (resultado esperado) en PROD
 .\.github\scripts\query-optimization\03-golden-file-regression.ps1 `
   -Mode capture `
   -SpName 'bi.AccionesFormativasPlanFormacion_S' `
@@ -37,7 +37,7 @@ cd c:\repo\BoostDBA
 
 # 3. Aplica el cambio en DEV primero
 
-# 4. Valida que el output no cambió
+# 4. Valida que la salida no cambió
 .\.github\scripts\query-optimization\03-golden-file-regression.ps1 `
   -Mode validate `
   -SpName 'bi.AccionesFormativasPlanFormacion_S' `
@@ -56,23 +56,23 @@ cd c:\repo\BoostDBA
 
 ### `01-capture-baseline.sql`
 Ejecutar en SSMS contra ProjectName. Captura:
-- Top 30 SPs por CPU, Elapsed y Frecuencia
-- Planes regresionados (Query Store)
-- Wait stats (PAGEIO_LATCH, LCK_M, etc.)
+- Top 30 SPs por CPU, tiempo transcurrido y frecuencia
+- Planes con regresion (Query Store)
+- Estadisticas de espera (PAGEIO_LATCH, LCK_M, etc.)
 - Spills a TEMPDB
 - Key lookups costosos
 - Estadísticas obsoletas (>7 días)
 
-**Cuándo:** Antes de CUALQUIER cambio. Guarda el output como `baseline-YYYYMMDD.csv`
+**Cuándo:** Antes de CUALQUIER cambio. Guarda la salida como `baseline-YYYYMMDD.json`
 
 ---
 
 ### `02-index-recommendations.sql`
 Genera DDL listo para revisar y aplicar:
-- **Missing indexes** ordenados por ImpactScore
+- **Indices faltantes** ordenados por ImpactScore
 - **FK sin índice** (principal causa de lock escalation)
 - **Índices duplicados/redundantes** (candidatos a DROP)
-- **Índices no usados** (overhead en escrituras)
+- **Índices no usados** (sobrecarga en escrituras)
 - **Fragmentación** (REBUILD vs REORGANIZE)
 
 **⚠️ Regla:** Nunca aplicar en bloque. Revisar uno a uno, aplicar con `ONLINE=ON`.
@@ -80,9 +80,9 @@ Genera DDL listo para revisar y aplicar:
 ---
 
 ### `03-golden-file-regression.ps1`
-Compara outputs funcionales de un SP:
+Compara salidas funcionales de un SP:
 
-| Mode | Acción |
+| Modo | Acción |
 |------|--------|
 | `capture` | Ejecuta SP y guarda resultado en JSON (golden file) |
 | `validate` | Ejecuta SP actual, compara vs golden. Exit 0=pass, 1=fail |
@@ -91,9 +91,9 @@ Compara outputs funcionales de un SP:
 **Salida golden:** `workspaces/ProjectName/tests/golden/{sp_name}.golden.json`
 
 Detecta:
-- Schema changes (columnas añadidas/quitadas)
-- Row count differences
-- Value differences (con tolerancia numérica configurable)
+- Cambios de esquema (columnas añadidas/quitadas)
+- Diferencias en número de filas
+- Diferencias de valores (con tolerancia numérica configurable)
 - NULL vs no-NULL
 
 ---
@@ -101,26 +101,26 @@ Detecta:
 ### `04-staged-rollout.ps1`
 Orquesta el despliegue seguro en 5 etapas:
 
-| Stage | Acción | Entorno |
+| Etapa | Acción | Entorno |
 |-------|--------|---------|
 | 0 | Captura baseline + métricas DMV | PROD |
 | 1 | Regresión funcional | DEV |
 | 2 | Regresión + rendimiento | STAGING |
-| 3 | Deploy con confirmación manual (`CONFIRMO`) | PROD |
+| 3 | Despliegue con confirmación manual (`CONFIRMO`) | PROD |
 | 4 | Monitor 24h post-deploy (comparar vs baseline) | PROD |
 
-**Rollback:** Si Stage 3 falla, el script muestra pasos de rollback y sale con código 1.
+**Reversión:** Si la etapa 3 falla, el script muestra pasos de reversión y sale con código 1.
 
 ---
 
 ## Patrones de Optimización Prioritarios
 
-### 1. Índice FK faltante (Quick Win, 30 min)
+### 1. Índice de clave foránea faltante (mejora rápida, 30 min)
 ```sql
--- Antes: Full scan en DELETE/UPDATE porque FK no indexada
+-- Antes: escaneo completo en DELETE/UPDATE porque la clave foránea no está indexada
 -- Detección: script 02 sección "FOREIGN KEYS SIN ÍNDICE"
 
--- Fix:
+-- Solución:
 CREATE NONCLUSTERED INDEX [IX_T_PLANFORMACION_FK_ConvocatoriaId]
 ON dbo.T_PLANFORMACION (ConvocatoriaId)
 WITH (ONLINE=ON, FILLFACTOR=90);
@@ -128,12 +128,12 @@ WITH (ONLINE=ON, FILLFACTOR=90);
 -- Validar: Ejecutar script 03 validate después de crear el índice
 ```
 
-### 2. Key Lookup → Covering Index (2-4h)
+### 2. Key Lookup → índice de cobertura (2-4h)
 ```sql
--- Antes: NC index lookup + clustered key lookup (2 reads por fila)
+-- Antes: búsqueda en índice no cluster + key lookup clusterizado (2 lecturas por fila)
 -- Detección: script 01 sección "KEY LOOKUPS"
 
--- Fix: Añadir columnas frecuentemente JOINed a INCLUDE
+-- Solución: añadir columnas usadas en JOIN a INCLUDE
 CREATE NONCLUSTERED INDEX [IX_T_FORMACION_PlanId_Covering]
 ON dbo.T_FORMACION (PlanId)
 INCLUDE (Nombre, FechaInicio, Estado, CentroId)  -- columnas del SELECT
@@ -149,24 +149,24 @@ UPDATE STATISTICS dbo.T_PLANFORMACION WITH FULLSCAN;
 EXEC sp_updatestats;
 ```
 
-### 4. Parameter Sniffing (Variable en PROD)
+### 4. Parameter Sniffing (variable en PROD)
 ```sql
 -- Síntoma: SP rápido en DEV, lento en PROD con mismos datos
--- Fix opción A: OPTIMIZE FOR UNKNOWN
+-- Solución opción A: OPTIMIZE FOR UNKNOWN
 CREATE OR ALTER PROCEDURE bi.ReportePlan @planId INT
 AS
     SELECT ... FROM dbo.T_PLANFORMACION WHERE PlanId = @planId
     OPTION (OPTIMIZE FOR (@planId UNKNOWN));
 
--- Fix opción B: Query Store → forzar plan bueno
+-- Solución opción B: Query Store → forzar plan óptimo
 -- 1. Identifica plan_id del plan bueno en QS
 -- 2. Fuerza ese plan:
 EXEC sys.sp_query_store_force_plan @query_id = 1234, @plan_id = 5678;
 ```
 
-### 5. Sargability — predicados no-sargables (1-2h por query)
+### 5. Sargabilidad — predicados no sargables (1-2h por consulta)
 ```sql
--- ❌ No-sargable (full scan aunque exista índice)
+-- ❌ No sargable (escaneo completo aunque exista índice)
 WHERE YEAR(FechaCreacion) = 2025
 WHERE CONVERT(VARCHAR, PlanId) = '1001'
 WHERE Nombre LIKE '%Plan%'
@@ -185,7 +185,7 @@ WHERE Descripcion > REPLICATE('a', 100)
 
 - [ ] Baseline capturado antes del cambio (script 01)
 - [ ] Golden file creado (script 03 capture)
-- [ ] Índice/rewrite aplicado en DEV
+- [ ] Índice/reescritura aplicado en DEV
 - [ ] Validación funcional pass (script 03 validate, Stage 1)
 - [ ] Validación en staging pass (Stage 2)
 - [ ] DDL de cambio revisado por DBA
@@ -198,32 +198,32 @@ WHERE Descripcion > REPLICATE('a', 100)
 
 ## Métricas de Éxito
 
-| Indicador | Target | Cómo medir |
+| Indicador | Objetivo | Cómo medir |
 |-----------|--------|------------|
 | AvgElapsed_ms | -20% mínimo | script 04 Stage 4 |
 | AvgLogicalReads | -30% mínimo | sys.dm_exec_procedure_stats |
-| Lock timeouts/día | < 5 | sys.dm_os_waiting_tasks alert |
-| PAGEIO_LATCH waits | < 100ms avg | script 01 sección wait stats |
-| Regressions detected | 0 | script 03 validate exit code |
+| Timeouts de lock/día | < 5 | alerta de sys.dm_os_waiting_tasks |
+| Esperas PAGEIO_LATCH | < 100ms promedio | script 01 sección de esperas |
+| Regresiones detectadas | 0 | código de salida de script 03 validate |
 
 ---
 
-## Rollback Manual
+## Reversión Manual
 
 Si un cambio causa regresión en PROD:
 
 ```sql
--- Rollback de índice
+-- Reversión de índice
 DROP INDEX [IX_nombre] ON schema.Tabla;
 
--- Rollback de SP rewrite
+-- Reversión de reescritura de SP
 -- Restaurar desde fuente de verdad:
 -- workspaces/ProjectName/fuente-de-verdad/schema/db.sql
 
--- Rollback de Query Store plan forzado
+-- Reversión de plan forzado en Query Store
 EXEC sys.sp_query_store_unforce_plan @query_id = 1234, @plan_id = 5678;
 
--- Rollback de UPDATE STATISTICS (no hay rollback directo)
+-- Reversión de UPDATE STATISTICS (no hay reversión directa)
 -- → Usar sp_updatestats para regenerar con datos actuales
 ```
 
@@ -240,7 +240,7 @@ EXEC sys.sp_query_store_unforce_plan @query_id = 1234, @plan_id = 5678;
 └── README.md                        ← Este archivo
 
 workspaces/ProjectName/tests/golden/
-└── {schema}_{sp_name}.golden.json   ← Golden files (no comitear sin review)
+└── {schema}_{sp_name}.golden.json   ← Archivos golden (no comitear sin revisión)
 
 workspaces/ProjectName/plans/optimization-reports/
 └── {sp_name}-rollout-{date}.md      ← Reporte de cada optimización
@@ -249,7 +249,7 @@ workspaces/ProjectName/plans/optimization-reports/
 ---
 
 **Próximos SPs priorizados (Wave-1, mayor frecuencia):**  
-Obtener de `workspaces/ProjectName/plans/full-db-sp-classification.csv`  
+Obtener de `workspaces/ProjectName/plans/full-db-sp-classification.json`  
 Filtrar: `Category = CRUD AND Wave = Wave-1`  
-Ordenar por: frecuencia real (Phase 2 DMV → `phase2-top-sps-frequency.csv`)
+Ordenar por: frecuencia real (Fase 2 DMV → `phase2-top-sps-frequency.json`)
 

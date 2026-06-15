@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string]$ClassificationCsv,
+    [string]$ClassificationJson,
     [Parameter(Mandatory = $true)]
     [string]$SchemaFile,
     [string]$OutDir = "workspaces/ProjectName/plans/migration/full-db-stubs",
@@ -11,21 +11,29 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-if (-not (Test-Path $ClassificationCsv)) {
-    throw "Classification CSV not found: $ClassificationCsv"
+if (-not (Test-Path $ClassificationJson)) {
+    throw "No se encontro el JSON de clasificacion: $ClassificationJson"
 }
 if (-not (Test-Path $SchemaFile)) {
-    throw "Schema file not found: $SchemaFile"
+    throw "No se encontro el archivo de schema: $SchemaFile"
 }
 
 New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
 
-$rows = Import-Csv $ClassificationCsv
+$classification = Get-Content -Path $ClassificationJson -Raw | ConvertFrom-Json
+$rows = @()
+if ($classification -is [System.Array]) {
+    $rows = $classification
+} elseif ($null -ne $classification.data) {
+    $rows = @($classification.data)
+} else {
+    $rows = @($classification)
+}
 if ($Wave -ne "All") {
     $rows = $rows | Where-Object { $_.Wave -eq $Wave }
 }
 
-# Build proc signatures map from schema (schema.name -> list of params)
+# Construir mapa de firmas de procedimientos desde el schema (schema.nombre -> lista de parametros)
 $schemaContent = Get-Content -Raw -Path $SchemaFile
 $signatureRegex = '(?is)CREATE\s+PROCEDURE\s+\[(?<schema>[^\]]+)\]\.\[(?<name>[^\]]+)\](?<sig>.*?)\bAS\b'
 $signatureMatches = [regex]::Matches($schemaContent, $signatureRegex)
@@ -203,7 +211,7 @@ $anonMap
 
         $count++
         if ($count % 250 -eq 0) {
-            Write-Host ("Generated {0}/{1}" -f $count, $total)
+            Write-Host ("Generados {0}/{1}" -f $count, $total)
         }
     }
     catch {
@@ -214,41 +222,73 @@ $anonMap
     }
 }
 
-$manifestPath = Join-Path $OutDir "stubs-manifest.csv"
-$manifest | Export-Csv -Path $manifestPath -NoTypeInformation -Encoding UTF8
+$manifestPath = Join-Path $OutDir "stubs-manifest.json"
+$manifestPayload = [ordered]@{
+    metadata = [ordered]@{
+        schemaVersion = "1.0"
+        versionEsquema = "1.0"
+        generatedAt = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+        generadoEn = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+        sourceClassificationFile = $ClassificationJson
+        archivoClasificacionOrigen = $ClassificationJson
+        sourceSchemaFile = $SchemaFile
+        archivoSchemaOrigen = $SchemaFile
+        filterWave = $Wave
+        olaFiltrada = $Wave
+        total = $manifest.Count
+    }
+    data = @($manifest)
+}
+$manifestPayload | ConvertTo-Json -Depth 8 | Set-Content -Path $manifestPath -Encoding UTF8
 
-$errorsPath = Join-Path $OutDir "stubs-errors.csv"
-$errors | Export-Csv -Path $errorsPath -NoTypeInformation -Encoding UTF8
+$errorsPath = Join-Path $OutDir "stubs-errors.json"
+$errorsPayload = [ordered]@{
+    metadata = [ordered]@{
+        schemaVersion = "1.0"
+        versionEsquema = "1.0"
+        generatedAt = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+        generadoEn = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+        sourceClassificationFile = $ClassificationJson
+        archivoClasificacionOrigen = $ClassificationJson
+        sourceSchemaFile = $SchemaFile
+        archivoSchemaOrigen = $SchemaFile
+        filterWave = $Wave
+        olaFiltrada = $Wave
+        total = $errors.Count
+    }
+    data = @($errors)
+}
+$errorsPayload | ConvertTo-Json -Depth 8 | Set-Content -Path $errorsPath -Encoding UTF8
 
 $summaryPath = Join-Path $OutDir "stubs-summary.md"
 $byWave = $manifest | Group-Object Wave | Sort-Object Name
 $bySchema = $manifest | Group-Object Schema | Sort-Object Count -Descending
 
-$md = "# Full DB C# Stub Generation`n`n"
-$md += "- Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`n"
-$md += "- Source CSV: $ClassificationCsv`n"
-$md += "- Source Schema: $SchemaFile`n"
-$md += "- Filter wave: $Wave`n"
-$md += "- Total procedures generated: $count`n"
-$md += "- Total procedures with errors: $($errors.Count)`n`n"
+$md = "# Generacion completa de stubs C#`n`n"
+$md += "- Generado: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`n"
+$md += "- JSON fuente: $ClassificationJson`n"
+$md += "- Schema fuente: $SchemaFile`n"
+$md += "- Ola filtrada: $Wave`n"
+$md += "- Total de procedimientos generados: $count`n"
+$md += "- Total de procedimientos con error: $($errors.Count)`n`n"
 
-$md += "## By Wave`n`n| Wave | Count |`n|---|---:|`n"
+$md += "## Por ola`n`n| Ola | Cantidad |`n|---|---:|`n"
 foreach ($w in $byWave) { $md += "| $($w.Name) | $($w.Count) |`n" }
 
-$md += "`n## Top Schemas`n`n| Schema | Count |`n|---|---:|`n"
+$md += "`n## Esquemas principales`n`n| Esquema | Cantidad |`n|---|---:|`n"
 foreach ($s in $bySchema | Select-Object -First 20) { $md += "| $($s.Name) | $($s.Count) |`n" }
 
-$md += "`n## Outputs`n`n"
+$md += "`n## Salidas`n`n"
 $md += "- $manifestPath`n"
 $md += "- $errorsPath`n"
 $md += "- $summaryPath`n"
 
 Set-Content -Path $summaryPath -Value $md -Encoding UTF8
 
-Write-Host "Stub generation completed"
-Write-Host "Total generated: $count"
-Write-Host "Total errors: $($errors.Count)"
-Write-Host "Manifest: $manifestPath"
-Write-Host "Errors: $errorsPath"
-Write-Host "Summary: $summaryPath"
+Write-Host "Generacion de stubs completada"
+Write-Host "Total generado: $count"
+Write-Host "Total con error: $($errors.Count)"
+Write-Host "Manifiesto: $manifestPath"
+Write-Host "Errores: $errorsPath"
+Write-Host "Resumen: $summaryPath"
 

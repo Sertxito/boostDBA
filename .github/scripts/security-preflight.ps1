@@ -23,7 +23,7 @@ Write-Host ""
 $failures  = [System.Collections.Generic.List[string]]::new()
 $warnings  = [System.Collections.Generic.List[string]]::new()
 
-# ── 2. SECRETOS EN FICHEROS JSON/MD/CSV (CRÍTICO) ─────────────────────────────
+# ── 2. SECRETOS EN FICHEROS JSON/MD (CRÍTICO) ─────────────────────────────────
 $secretPatterns = @(
     @{ Name = "Password en claro";         Pattern = 'Password\s*=\s*[^;"\s]{4,}' }
     @{ Name = "Credencial sa";             Pattern = 'User\s*Id\s*=\s*sa\b|uid=sa\b' }
@@ -81,8 +81,8 @@ if (Test-Path $manifestPath) {
 
 # ── 5. ARTEFACTOS DE PROYECTO EN .github (NUNCA DEBEN ESTAR AHI) ──────────────
 $githubLeaks = Get-ChildItem -Path ".github" -Recurse -File -ErrorAction SilentlyContinue |
-    Where-Object { $_.Extension -match '\.(sql|json|csv|md)$' -and
-                   $_.Name -match 'db\.sql$|manifest\.json$|sp-classification\.csv|critical-rules-catalog|complex-rules-catalog|views-by-schema|functions-by-schema|tables-by-schema|procs-by-schema' }
+    Where-Object { $_.Extension -match '\.(sql|json|md)$' -and
+                   $_.Name -match 'db\.sql$|manifest\.json$|full-db-sp-classification\.json|critical-rules-catalog|complex-rules-catalog|views-by-schema|functions-by-schema|tables-by-schema|procs-by-schema' }
 if ($githubLeaks) {
     $githubLeaks | ForEach-Object {
         $failures.Add("DATA LEAK: artefacto '$($_.Name)' en .github/ — debe estar solo en workspaces/")

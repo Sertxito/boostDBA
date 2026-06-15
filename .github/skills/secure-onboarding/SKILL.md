@@ -42,7 +42,7 @@ workspaces/<Proyecto>/
     views-by-schema.json        ← inventario de vistas por schema     ← NUEVO
     functions-by-schema.json    ← inventario de funciones por schema  ← NUEVO
   plans/
-    full-db-sp-classification.csv  ← clasificación CRUD/Simple/Complex/Critical
+    full-db-sp-classification.json ← clasificación CRUD/Simple/Complex/Critical
     full-db-sp-classification.md
   reports/
     business-rules/
@@ -84,7 +84,7 @@ foreach($l in $lines) {
 ```powershell
 pwsh -File .github/scripts/analyze-sp-migration.ps1 -ProjectName "NombreProyecto"
 ```
-Genera: `plans/full-db-sp-classification.csv`
+Genera: `plans/full-db-sp-classification.json`
 
 ### Paso 4: Catálogos de reglas de negocio (REQUERIDO antes de cualquier análisis)
 ```powershell
@@ -102,7 +102,7 @@ $p = "workspaces/NombreProyecto"
     "$p/fuente-de-verdad/procs-by-schema.json",
     "$p/fuente-de-verdad/views-by-schema.json",
     "$p/fuente-de-verdad/functions-by-schema.json",
-    "$p/plans/full-db-sp-classification.csv",
+    "$p/plans/full-db-sp-classification.json",
     "$p/reports/business-rules/critical-rules-catalog.md",
     "$p/reports/business-rules/complex-rules-catalog.md"
 ) | ForEach-Object { "$_ → $(if(Test-Path $_){'✅'}else{'❌ FALTA'})" }

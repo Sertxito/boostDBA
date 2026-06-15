@@ -10,5 +10,4 @@ workspaces/
 input/
 
 # Token usage logs locales (no versionar, solo el MD)
-.github/reports/*.csv
 .github/reports/token-usage-history.json

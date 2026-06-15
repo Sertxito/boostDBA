@@ -8,7 +8,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $SchemaFile)) {
-    throw "Schema file not found: $SchemaFile"
+    throw "No se encontro el archivo de schema: $SchemaFile"
 }
 
 if (-not (Test-Path $OutDir)) {
@@ -17,7 +17,7 @@ if (-not (Test-Path $OutDir)) {
 
 $content = Get-Content -Path $SchemaFile -Raw
 
-# Capture each procedure block from CREATE PROCEDURE ... until next GO
+# Capturar cada bloque de procedimiento desde CREATE PROCEDURE ... hasta el siguiente GO
 $procRegex = '(?is)CREATE\s+PROCEDURE\s+\[(?<schema>[^\]]+)\]\.\[(?<name>[^\]]+)\](?<body>.*?)(?:\r?\nGO\b|\z)'
 $matches = [regex]::Matches($content, $procRegex)
 
@@ -63,7 +63,7 @@ foreach ($m in $matches) {
         $strategy = "Dapper-Query"
     }
 
-    # Schema overrides based on the migration strategy
+    # Reglas por esquema segun la estrategia de migracion
     if ($schema -eq "bi") {
         $category = "CRUD"
         $wave = "Wave-1"
@@ -85,11 +85,25 @@ foreach ($m in $matches) {
     }
 }
 
-$csvPath = Join-Path $OutDir "full-db-sp-classification.csv"
+$jsonPath = Join-Path $OutDir "full-db-sp-classification.json"
 $mdPath = Join-Path $OutDir "full-db-sp-classification.md"
-$schemaSummaryPath = Join-Path $OutDir "full-db-schema-wave-summary.csv"
+$schemaSummaryPath = Join-Path $OutDir "full-db-schema-wave-summary.json"
 
-$results | Sort-Object Schema, Procedure | Export-Csv -Path $csvPath -NoTypeInformation -Encoding UTF8
+$results = $results | Sort-Object Schema, Procedure
+$classificationPayload = [ordered]@{
+    metadata = [ordered]@{
+        schemaVersion = "1.0"
+        versionEsquema = "1.0"
+        generatedAt = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+        generadoEn = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+        sourceSchemaFile = $SchemaFile
+        archivoSchemaOrigen = $SchemaFile
+        total = $results.Count
+        totalElementos = $results.Count
+    }
+    data = $results
+}
+$classificationPayload | ConvertTo-Json -Depth 8 | Set-Content -Path $jsonPath -Encoding UTF8
 
 $byCategory = $results | Group-Object Category | Sort-Object Name
 $byWave = $results | Group-Object Wave | Sort-Object Name
@@ -107,7 +121,20 @@ foreach ($g in $bySchema) {
         Wave4 = @($items | Where-Object Wave -eq "Wave-4").Count
     }
 }
-$schemaWaveRows | Export-Csv -Path $schemaSummaryPath -NoTypeInformation -Encoding UTF8
+$schemaSummaryPayload = [ordered]@{
+    metadata = [ordered]@{
+        schemaVersion = "1.0"
+        versionEsquema = "1.0"
+        generatedAt = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+        generadoEn = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+        sourceClassificationFile = $jsonPath
+        archivoClasificacionOrigen = $jsonPath
+        totalSchemas = $schemaWaveRows.Count
+        totalEsquemas = $schemaWaveRows.Count
+    }
+    data = $schemaWaveRows
+}
+$schemaSummaryPayload | ConvertTo-Json -Depth 8 | Set-Content -Path $schemaSummaryPath -Encoding UTF8
 
 $topCritical = $results |
     Where-Object { $_.Wave -eq "Wave-4" } |
@@ -120,58 +147,58 @@ $topWave1 = $results |
     Select-Object -First 40
 
 $nl = [Environment]::NewLine
-$md = "# Full DB SP Classification (C# Migration)`n`n"
-$md += "- Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`n"
-$md += "- Source: $SchemaFile`n"
-$md += "- Total procedures: $($results.Count)`n`n"
+$md = "# Clasificacion completa de SPs (Migracion C#)`n`n"
+$md += "- Generado: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`n"
+$md += "- Fuente: $SchemaFile`n"
+$md += "- Total de procedimientos: $($results.Count)`n`n"
 
-$md += "## Category Summary`n`n"
-$md += "| Category | Count |`n|---|---:|`n"
+$md += "## Resumen por categoria`n`n"
+$md += "| Categoria | Cantidad |`n|---|---:|`n"
 foreach ($c in $byCategory) {
     $md += "| $($c.Name) | $($c.Count) |`n"
 }
 
-$md += "`n## Wave Summary`n`n"
-$md += "| Wave | Count | Strategy |`n|---|---:|---|`n"
+$md += "`n## Resumen por ola`n`n"
+$md += "| Ola | Cantidad | Estrategia |`n|---|---:|---|`n"
 foreach ($w in $byWave) {
     $strategy = switch ($w.Name) {
-        "Wave-1" { "Dapper queries (read-first)" }
-        "Wave-2" { "Simple commands/handlers" }
-        "Wave-3" { "Domain service extraction" }
-        "Wave-4" { "Critical transactional/crypto" }
-        default { "TBD" }
+        "Wave-1" { "Consultas Dapper (lectura primero)" }
+        "Wave-2" { "Comandos/handlers simples" }
+        "Wave-3" { "Extraccion a servicio de dominio" }
+        "Wave-4" { "Transaccional/criptografia critica" }
+        default { "Por definir" }
     }
     $md += "| $($w.Name) | $($w.Count) | $strategy |`n"
 }
 
-$md += "`n## Schema x Wave`n`n"
-$md += "| Schema | Total | Wave-1 | Wave-2 | Wave-3 | Wave-4 |`n|---|---:|---:|---:|---:|---:|`n"
+$md += "`n## Esquema x ola`n`n"
+$md += "| Esquema | Total | Wave-1 | Wave-2 | Wave-3 | Wave-4 |`n|---|---:|---:|---:|---:|---:|`n"
 foreach ($s in ($schemaWaveRows | Sort-Object Total -Descending)) {
     $md += "| $($s.Schema) | $($s.Total) | $($s.Wave1) | $($s.Wave2) | $($s.Wave3) | $($s.Wave4) |`n"
 }
 
-$md += "`n## First 40 Wave-1 Candidates`n`n"
-$md += "| FullName | Strategy |`n|---|---|`n"
+$md += "`n## Primeros 40 candidatos Wave-1`n`n"
+$md += "| NombreCompleto | Estrategia |`n|---|---|`n"
 foreach ($p in $topWave1) {
     $md += "| $($p.FullName) | $($p.Strategy) |`n"
 }
 
-$md += "`n## First 40 Wave-4 Critical Candidates`n`n"
-$md += "| FullName | Tx | Cursor | DynamicSQL | Crypto |`n|---|---|---|---|---|`n"
+$md += "`n## Primeros 40 candidatos criticos Wave-4`n`n"
+$md += "| NombreCompleto | Tx | Cursor | SQLDinamico | Cripto |`n|---|---|---|---|---|`n"
 foreach ($p in $topCritical) {
     $md += "| $($p.FullName) | $($p.HasTransaction) | $($p.HasCursor) | $($p.HasDynamicSql) | $($p.HasCrypto) |`n"
 }
 
-$md += "`n## Outputs`n`n"
-$md += "- $csvPath`n"
+$md += "`n## Salidas`n`n"
+$md += "- $jsonPath`n"
 $md += "- $schemaSummaryPath`n"
 $md += "- $mdPath`n"
 
 Set-Content -Path $mdPath -Value $md -Encoding UTF8
 
-Write-Host "Classification completed"
-Write-Host "Total SPs: $($results.Count)"
-Write-Host "CSV: $csvPath"
-Write-Host "Schema summary: $schemaSummaryPath"
+Write-Host "Clasificacion completada"
+Write-Host "Total de SPs: $($results.Count)"
+Write-Host "JSON: $jsonPath"
+Write-Host "Resumen por esquema (JSON): $schemaSummaryPath"
 Write-Host "MD: $mdPath"
 

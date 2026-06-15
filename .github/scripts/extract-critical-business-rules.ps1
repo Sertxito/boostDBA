@@ -25,10 +25,10 @@ if (-not $ProjectName) {
 
 $workspaceRoot = "workspaces/$ProjectName"
 $schemaPath    = "$workspaceRoot/fuente-de-verdad/schema/db.sql"
-$csvPath       = "$workspaceRoot/plans/full-db-sp-classification.csv"
+$classificationPath = "$workspaceRoot/plans/full-db-sp-classification.json"
 
 if (-not (Test-Path $schemaPath)) { throw "Schema no encontrado: $schemaPath" }
-if (-not (Test-Path $csvPath))    { throw "CSV de clasificación no encontrado: $csvPath" }
+if (-not (Test-Path $classificationPath)) { throw "Clasificación JSON no encontrada: $classificationPath" }
 
 if (-not $OutputDir) { $OutputDir = "$workspaceRoot/reports/business-rules" }
 New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
@@ -36,7 +36,16 @@ New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
 # ──────────────────────────────────────────────
 # 2. CARGAR LISTA DE SPs A ANALIZAR
 # ──────────────────────────────────────────────
-$targetSPs = Import-Csv $csvPath | Where-Object { $_.Category -eq $Category }
+$classification = Get-Content $classificationPath -Raw | ConvertFrom-Json
+$classificationData = @()
+if ($classification -is [System.Array]) {
+    $classificationData = $classification
+} elseif ($null -ne $classification.data) {
+    $classificationData = @($classification.data)
+} else {
+    $classificationData = @($classification)
+}
+$targetSPs = $classificationData | Where-Object { $_.Category -eq $Category }
 Write-Host "SPs $Category a analizar: $($targetSPs.Count)"
 
 # ──────────────────────────────────────────────
@@ -163,11 +172,35 @@ Write-Host "No encontrados en schema: $($notFound.Count)"
 # ──────────────────────────────────────────────
 # 5. GUARDAR RESULTADOS
 # ──────────────────────────────────────────────
-$jsonPath = "$OutputDir/critical-rules-catalog.json"
-$mdPath   = "$OutputDir/critical-rules-catalog.md"
+$categorySlug = $Category.ToLowerInvariant()
+$jsonPath = "$OutputDir/$categorySlug-rules-catalog.json"
+$mdPath   = "$OutputDir/$categorySlug-rules-catalog.md"
 
 # JSON (completo, para análisis posterior)
-$results | ConvertTo-Json -Depth 5 | Out-File $jsonPath -Encoding UTF8
+$rulesPayload = [ordered]@{
+    metadata = [ordered]@{
+        schemaVersion = "1.0"
+        versionEsquema = "1.0"
+        generatedAt = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+        generadoEn = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+        projectName = $ProjectName
+        nombreProyecto = $ProjectName
+        category = $Category
+        categoria = $Category
+        sourceSchemaFile = $schemaPath
+        archivoSchemaOrigen = $schemaPath
+        sourceClassificationFile = $classificationPath
+        archivoClasificacionOrigen = $classificationPath
+        analyzed = $results.Count
+        analizados = $results.Count
+        requested = $total
+        solicitados = $total
+        notFound = $notFound.Count
+        noEncontrados = $notFound.Count
+    }
+    data = $results
+}
+$rulesPayload | ConvertTo-Json -Depth 8 | Out-File $jsonPath -Encoding UTF8
 
 # Markdown (legible, con tabla resumen + sección por patrón más frecuente)
 $sb = [System.Text.StringBuilder]::new()

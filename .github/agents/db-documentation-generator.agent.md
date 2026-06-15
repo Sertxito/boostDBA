@@ -28,7 +28,7 @@ Crea "la documentación que nadie escribió" analizando stored procedures, tabla
 ```powershell
 $proyecto = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
 $schemaPath = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
-$csvPath    = "workspaces/$proyecto/plans/full-db-sp-classification.csv"
+$classificationPath = "workspaces/$proyecto/plans/full-db-sp-classification.json"
 $rulesDir   = "workspaces/$proyecto/reports/business-rules"
 
 

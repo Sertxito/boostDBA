@@ -1,30 +1,30 @@
 <#
 .SYNOPSIS
-  Phase 2 Bottleneck Validation: Run DMV queries against SQL Server PROD to confirm actual bottlenecks
+  Validacion de cuellos de botella Fase 2: ejecuta consultas DMV en SQL Server PROD para confirmar cuellos reales
   
 .DESCRIPTION
-  Validates the static-analysis diagnosis with real production metrics:
-  1. Top SPs by total_elapsed_time (CPU-bound queries)
-  2. Top SPs by execution_count (frequent/contention candidates)
-  3. Lock escalation events (waits on PAGEIO_LATCH, LCK_M)
-  4. Plan cache bloat (multiple plans for same query)
-  5. Wait stats breakdown by type
+  Valida el diagnostico de analisis estatico con metricas reales de produccion:
+  1. Top SPs por total_elapsed_time (consultas CPU-bound)
+  2. Top SPs por execution_count (candidatos frecuentes/de contencion)
+  3. Eventos de escalado de locks (waits PAGEIO_LATCH, LCK_M)
+  4. Inflado de cache de planes (multiples planes para la misma consulta)
+  5. Desglose de wait stats por tipo
   
 .PARAMETER ServerInstance
-  SQL Server instance (e.g., 'localhost\SQLEXPRESS' or 'prod.database.windows.net')
+  Instancia SQL Server (ej., 'localhost\SQLEXPRESS' o 'prod.database.windows.net')
   
 .PARAMETER DatabaseName
-  Target database (e.g., 'ProjectName')
+  Base de datos objetivo (ej., 'ProjectName')
   
 .PARAMETER OutputDir
-  Directory for reports (defaults to ./workspaces/ProjectName/plans/)
+  Directorio de salida para informes (por defecto ./workspaces/ProjectName/plans/)
   
 .EXAMPLE
   .\diagnose-sp-bottlenecks.ps1 -ServerInstance 'prod-db.database.windows.net' -DatabaseName 'ProjectName'
   
 .NOTES
-  Requires: SQL Server Management Objects (SMO) or SqlServer module
-  Role: db_datareader on target database
+  Requiere: SQL Server Management Objects (SMO) o modulo SqlServer
+  Rol: db_datareader en la base objetivo
 #>
 
 param(
@@ -40,27 +40,57 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-Write-Host "🔍 Phase 2: DMV Bottleneck Validation" -ForegroundColor Cyan
-Write-Host "📌 Target: $ServerInstance / $DatabaseName" -ForegroundColor Gray
-Write-Host "📂 Output: $OutputDir" -ForegroundColor Gray
+function Export-JsonEnvelope {
+  param(
+    [Parameter(Mandatory=$true)] [string]$Path,
+    [Parameter(Mandatory=$true)] [string]$QueryName,
+    [Parameter(Mandatory=$true)] [object]$Rows,
+    [string]$Server,
+    [string]$Database
+  )
 
-# Ensure output directory exists
-if (-not (Test-Path $OutputDir)) {
-  New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
-  Write-Host "✅ Created output directory" -ForegroundColor Green
+  $items = @($Rows)
+  $payload = [ordered]@{
+    metadata = [ordered]@{
+      schemaVersion = "1.0"
+      versionEsquema = "1.0"
+      generatedAt = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+      generadoEn = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+      query = $QueryName
+      consulta = $QueryName
+      serverInstance = $Server
+      instanciaServidor = $Server
+      databaseName = $Database
+      nombreBaseDatos = $Database
+      total = $items.Count
+    }
+    data = $items
+  }
+
+  $payload | ConvertTo-Json -Depth 8 | Out-File -FilePath $Path -Encoding UTF8 -Force
 }
 
-# Try to import SqlServer module, fall back to SMO
+Write-Host "🔍 Fase 2: Validacion de cuellos de botella con DMV" -ForegroundColor Cyan
+Write-Host "📌 Objetivo: $ServerInstance / $DatabaseName" -ForegroundColor Gray
+Write-Host "📂 Salida: $OutputDir" -ForegroundColor Gray
+
+# Asegurar que exista el directorio de salida
+if (-not (Test-Path $OutputDir)) {
+  New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
+  Write-Host "✅ Directorio de salida creado" -ForegroundColor Green
+}
+
+# Intentar importar SqlServer; fallback a SMO
 try {
   Import-Module SqlServer -ErrorAction Stop | Out-Null
   $usingSqlModule = $true
-  Write-Host "✅ Using SqlServer module" -ForegroundColor Green
+  Write-Host "✅ Usando modulo SqlServer" -ForegroundColor Green
 } catch {
-  Write-Host "⚠️  SqlServer module not found, attempting direct connection..." -ForegroundColor Yellow
+  Write-Host "⚠️  Modulo SqlServer no encontrado, intentando conexion directa..." -ForegroundColor Yellow
   $usingSqlModule = $false
 }
 
-# Connect to SQL Server
+# Conectar a SQL Server
 try {
   if ($usingSqlModule) {
     $connection = Connect-DbaInstance -SqlInstance $ServerInstance -Database $DatabaseName -ErrorAction Stop
@@ -68,15 +98,15 @@ try {
     [System.Reflection.Assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
     $smo = New-Object Microsoft.SqlServer.Management.Smo.Server $ServerInstance
     $db = $smo.Databases[$DatabaseName]
-    Write-Host "✅ Connected to $ServerInstance / $DatabaseName" -ForegroundColor Green
+    Write-Host "✅ Conectado a $ServerInstance / $DatabaseName" -ForegroundColor Green
   }
 } catch {
-  Write-Host "❌ Failed to connect: $_" -ForegroundColor Red
+  Write-Host "❌ Error al conectar: $_" -ForegroundColor Red
   exit 1
 }
 
-# Query 1: Top SPs by total_elapsed_time (CPU-bound)
-Write-Host "`n📊 Query 1: Top 20 SPs by Total Elapsed Time (CPU-bound)" -ForegroundColor Cyan
+# Consulta 1: Top SPs por total_elapsed_time (CPU-bound)
+Write-Host "`n📊 Consulta 1: Top 20 SPs por tiempo total transcurrido (CPU-bound)" -ForegroundColor Cyan
 
 $query1 = @"
 SELECT TOP 20 
@@ -102,14 +132,14 @@ try {
   }
   
   $results1 | Format-Table -AutoSize
-  $results1 | Export-Csv -Path "$OutputDir\phase2-top-sps-cpu.csv" -NoTypeInformation -Force
-  Write-Host "✅ Exported to phase2-top-sps-cpu.csv" -ForegroundColor Green
+  Export-JsonEnvelope -Path "$OutputDir\phase2-top-sps-cpu.json" -QueryName "top-sps-cpu" -Rows $results1 -Server $ServerInstance -Database $DatabaseName
+  Write-Host "✅ Exportado a phase2-top-sps-cpu.json" -ForegroundColor Green
 } catch {
-  Write-Host "❌ Query 1 failed: $_" -ForegroundColor Red
+  Write-Host "❌ Consulta 1 fallo: $_" -ForegroundColor Red
 }
 
-# Query 2: Top SPs by execution_count (frequent)
-Write-Host "`n📊 Query 2: Top 20 SPs by Execution Count (contention risk)" -ForegroundColor Cyan
+# Consulta 2: Top SPs por execution_count (frecuencia)
+Write-Host "`n📊 Consulta 2: Top 20 SPs por numero de ejecuciones (riesgo de contencion)" -ForegroundColor Cyan
 
 $query2 = @"
 SELECT TOP 20
@@ -133,14 +163,14 @@ try {
   }
   
   $results2 | Format-Table -AutoSize
-  $results2 | Export-Csv -Path "$OutputDir\phase2-top-sps-frequency.csv" -NoTypeInformation -Force
-  Write-Host "✅ Exported to phase2-top-sps-frequency.csv" -ForegroundColor Green
+  Export-JsonEnvelope -Path "$OutputDir\phase2-top-sps-frequency.json" -QueryName "top-sps-frequency" -Rows $results2 -Server $ServerInstance -Database $DatabaseName
+  Write-Host "✅ Exportado a phase2-top-sps-frequency.json" -ForegroundColor Green
 } catch {
-  Write-Host "❌ Query 2 failed: $_" -ForegroundColor Red
+  Write-Host "❌ Consulta 2 fallo: $_" -ForegroundColor Red
 }
 
-# Query 3: Wait stats breakdown
-Write-Host "`n📊 Query 3: Wait Stats Breakdown" -ForegroundColor Cyan
+# Consulta 3: Desglose de waits
+Write-Host "`n📊 Consulta 3: Desglose de wait stats" -ForegroundColor Cyan
 
 $query3 = @"
 SELECT TOP 20
@@ -167,14 +197,14 @@ try {
   }
   
   $results3 | Format-Table -AutoSize
-  $results3 | Export-Csv -Path "$OutputDir\phase2-wait-stats.csv" -NoTypeInformation -Force
-  Write-Host "✅ Exported to phase2-wait-stats.csv" -ForegroundColor Green
+  Export-JsonEnvelope -Path "$OutputDir\phase2-wait-stats.json" -QueryName "wait-stats" -Rows $results3 -Server $ServerInstance -Database $DatabaseName
+  Write-Host "✅ Exportado a phase2-wait-stats.json" -ForegroundColor Green
 } catch {
-  Write-Host "❌ Query 3 failed: $_" -ForegroundColor Red
+  Write-Host "❌ Consulta 3 fallo: $_" -ForegroundColor Red
 }
 
-# Query 4: Lock escalation candidates (sessions waiting on locks)
-Write-Host "`n📊 Query 4: Current Lock Waits" -ForegroundColor Cyan
+# Consulta 4: Candidatos a escalado de locks
+Write-Host "`n📊 Consulta 4: Waits de lock actuales" -ForegroundColor Cyan
 
 $query4 = @"
 SELECT 
@@ -197,18 +227,18 @@ try {
   }
   
   if ($results4) {
-    Write-Host "⚠️  ACTIVE LOCK WAITS DETECTED:" -ForegroundColor Yellow
+    Write-Host "⚠️  SE DETECTARON WAITS DE LOCK ACTIVOS:" -ForegroundColor Yellow
     $results4 | Format-Table -AutoSize
-    $results4 | Export-Csv -Path "$OutputDir\phase2-active-locks.csv" -NoTypeInformation -Force
+    Export-JsonEnvelope -Path "$OutputDir\phase2-active-locks.json" -QueryName "active-locks" -Rows $results4 -Server $ServerInstance -Database $DatabaseName
   } else {
-    Write-Host "✅ No lock waits detected (normal)" -ForegroundColor Green
+    Write-Host "✅ No se detectaron waits de lock (normal)" -ForegroundColor Green
   }
 } catch {
-  Write-Host "❌ Query 4 failed: $_" -ForegroundColor Red
+  Write-Host "❌ Consulta 4 fallo: $_" -ForegroundColor Red
 }
 
-# Query 5: Plan cache bloat detection
-Write-Host "`n📊 Query 5: Plan Cache Bloat (Multiple Plans per Statement)" -ForegroundColor Cyan
+# Consulta 5: Deteccion de inflado de cache de planes
+Write-Host "`n📊 Consulta 5: Inflado de cache de planes (multiples planes por sentencia)" -ForegroundColor Cyan
 
 $query5 = @"
 SELECT TOP 10
@@ -232,73 +262,73 @@ try {
   }
   
   if ($results5) {
-    Write-Host "⚠️  PLAN CACHE BLOAT DETECTED:" -ForegroundColor Yellow
+    Write-Host "⚠️  SE DETECTO INFLADO DE CACHE DE PLANES:" -ForegroundColor Yellow
     $results5 | Format-Table -AutoSize
-    $results5 | Export-Csv -Path "$OutputDir\phase2-plan-cache-bloat.csv" -NoTypeInformation -Force
+    Export-JsonEnvelope -Path "$OutputDir\phase2-plan-cache-bloat.json" -QueryName "plan-cache-bloat" -Rows $results5 -Server $ServerInstance -Database $DatabaseName
   } else {
-    Write-Host "✅ No plan cache bloat detected" -ForegroundColor Green
+    Write-Host "✅ No se detecto inflado de cache de planes" -ForegroundColor Green
   }
 } catch {
-  Write-Host "❌ Query 5 failed: $_" -ForegroundColor Red
+  Write-Host "❌ Consulta 5 fallo: $_" -ForegroundColor Red
 }
 
-# Generate summary report
-Write-Host "`n📋 Generating summary report..." -ForegroundColor Cyan
+# Generar informe resumen
+Write-Host "`n📋 Generando informe resumen..." -ForegroundColor Cyan
 
 $summary = @"
-# 📊 PHASE 2 DMV VALIDATION SUMMARY
-**Date:** $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
-**Server:** $ServerInstance
-**Database:** $DatabaseName
+# 📊 RESUMEN DE VALIDACION DMV - FASE 2
+**Fecha:** $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+**Servidor:** $ServerInstance
+**Base de datos:** $DatabaseName
 
-## ✅ Executed Queries
+## ✅ Consultas ejecutadas
 
-1. **Top 20 SPs by Total Elapsed Time (CPU-bound)**
-   - File: phase2-top-sps-cpu.csv
-   - Purpose: Identify CPU-intensive procedures
+1. **Top 20 SPs por tiempo total transcurrido (CPU-bound)**
+  - Archivo: phase2-top-sps-cpu.json
+  - Objetivo: identificar procedimientos intensivos en CPU
 
-2. **Top 20 SPs by Execution Count (Contention Risk)**
-   - File: phase2-top-sps-frequency.csv
-   - Purpose: Identify frequently-called procedures (high contention risk)
+2. **Top 20 SPs por numero de ejecuciones (riesgo de contencion)**
+  - Archivo: phase2-top-sps-frequency.json
+  - Objetivo: identificar procedimientos muy frecuentes (alto riesgo de contencion)
 
-3. **Wait Stats Breakdown**
-   - File: phase2-wait-stats.csv
-   - Purpose: Identify bottleneck wait types (PAGEIO_LATCH, LCK_M, etc)
+3. **Desglose de estadisticas de espera**
+  - Archivo: phase2-wait-stats.json
+  - Objetivo: identificar tipos de wait con cuellos de botella (PAGEIO_LATCH, LCK_M, etc)
 
-4. **Active Lock Waits**
-   - File: phase2-active-locks.csv
-   - Purpose: Real-time lock contention detection
+4. **Waits de lock activos**
+  - Archivo: phase2-active-locks.json
+  - Objetivo: detectar contencion de locks en tiempo real
 
-5. **Plan Cache Bloat**
-   - File: phase2-plan-cache-bloat.csv
-   - Purpose: Identify procedures with multiple execution plans (dynamic SQL?)
+5. **Inflado de cache de planes**
+  - Archivo: phase2-plan-cache-bloat.json
+  - Objetivo: identificar procedimientos con multiples planes de ejecucion (SQL dinamico?)
 
-## 🎯 Interpretation Guide
+## 🎯 Guia de interpretacion
 
-### High-Risk Indicators
-- **PAGEIO_LATCH waits > 1000ms:** Index fragmentation or missing indexes
-- **LCK_M_X waits:** Write contention on tables
-- **Multiple plans for same SP:** Dynamic SQL or parameter sniffing
+### Indicadores de alto riesgo
+- **PAGEIO_LATCH esperas > 1000ms:** fragmentacion de indices o indices faltantes
+- **LCK_M_X esperas:** contencion de escritura en tablas
+- **Multiples planes para el mismo SP:** SQL dinamico o parameter sniffing
 
-### Correlation with Static Analysis
-- Static says: 2,483 write SPs (37.9%)
-- DMV shows: TOP execution by frequency = high contention risk
-- Action: Prioritize top 20 write SPs for index audit
+### Correlacion con analisis estatico
+- Analisis estatico: 2,483 SPs de escritura (37.9%)
+- DMV muestra: top de ejecucion por frecuencia = alto riesgo de contencion
+- Accion: priorizar top 20 SPs de escritura para auditoria de indices
 
-## 📋 Next Steps
-1. Review top CPU SPs - correlate with Complex/Critical category
-2. Review top frequency SPs - correlate with Wave assignment
-3. Review wait stats - match against expected bottlenecks
-4. If PAGEIO_LATCH high: Run index fragmentation audit
-5. If LCK_M high: Validate missing FK indexes
+## 📋 Siguientes pasos
+1. Revisar top SPs por CPU y correlacionar con categoria Complex/Critical
+2. Revisar top SPs por frecuencia y correlacionar con asignacion de ola
+3. Revisar wait stats y contrastar con cuellos esperados
+4. Si PAGEIO_LATCH es alto: ejecutar auditoria de fragmentacion de indices
+5. Si LCK_M es alto: validar indices faltantes en claves foraneas
 
 ---
-**Generated:** $(Get-Date)
+**Generado:** $(Get-Date)
 "@
 
-$summary | Out-File -FilePath "$OutputDir\PHASE2-SUMMARY.md" -Force
-Write-Host "✅ Summary report exported to PHASE2-SUMMARY.md" -ForegroundColor Green
+$summary | Out-File -FilePath "$OutputDir\FASE2-RESUMEN.md" -Force
+Write-Host "✅ Informe resumen exportado a FASE2-RESUMEN.md" -ForegroundColor Green
 
-Write-Host "`n✅ Phase 2 validation complete!" -ForegroundColor Green
-Write-Host "📂 Reports available in: $OutputDir" -ForegroundColor Green
+Write-Host "`n✅ Validacion de fase 2 completada" -ForegroundColor Green
+Write-Host "📂 Informes disponibles en: $OutputDir" -ForegroundColor Green
 

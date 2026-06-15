@@ -85,7 +85,7 @@ $readmePath = Join-Path $projectRoot "README.md"
 # Workspace DBA 360 - $ProjectName
 
 Este workspace es la fuente de verdad local para trabajar sin depender de conexion continua a la BBDD origen.
-Se crea fuera del producto BoostDBA, como carpeta hermana del repo.
+Se crea dentro del repo BoostDBA, bajo workspaces/.
 
 ## Estructura
 - fuente-de-verdad/: esquemas y manifest
@@ -96,7 +96,7 @@ Se crea fuera del producto BoostDBA, como carpeta hermana del repo.
 ## Proximo paso
 Ejecuta el preflight de seguridad sobre esta fuente:
 
-pwsh -File .\scripts\security-preflight.ps1 -Target "$projectRoot"
+pwsh -File .\.github\scripts\security-preflight.ps1 -ProjectName "$ProjectName"
 "@ | Set-Content -Path $readmePath -Encoding UTF8
 
 Write-Host "Fuente de verdad creada en: $projectRoot"

@@ -173,7 +173,7 @@ $history | ConvertTo-Json -Depth 8 | Set-Content -Path $logPath -Encoding UTF8
 $preflightScript = Join-Path $PSScriptRoot "security-preflight.ps1"
 if (Test-Path $preflightScript) {
     Write-Host "[3/3] Ejecutando preflight de seguridad..." -ForegroundColor Yellow
-    & $preflightScript -Target $projectRoot
+    & $preflightScript -ProjectName $ProjectName
 } else {
     Write-Host "[3/3] security-preflight.ps1 no encontrado, omitiendo." -ForegroundColor DarkYellow
 }

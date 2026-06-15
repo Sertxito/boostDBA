@@ -39,7 +39,7 @@ Orquestador maestro que coordina el viaje completo de DB Boost: analizando depen
 ```powershell
 $proyecto    = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
 $schemaPath  = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
-$csvPath     = "workspaces/$proyecto/plans/full-db-sp-classification.csv"
+$classificationPath = "workspaces/$proyecto/plans/full-db-sp-classification.json"
 $rulesDir    = "workspaces/$proyecto/reports/business-rules"
 
 
@@ -69,7 +69,7 @@ Select-String -Path $schemaPath -Pattern "NOMBRE_SP" | Select-Object -First 3 Li
 Get-Content $schemaPath | Select-Object -Skip ($lineNum - 1) -First 350
 ```
 
-**La clasificación CRUD/Simple/Complex/Critical del CSV es un punto de partida, NO es la evaluación.**
+**La clasificación CRUD/Simple/Complex/Critical del JSON es un punto de partida, NO es la evaluación.**
 
 ## Instrucciones
 1. **Kickoff de Engagement**: Define scope y objetivos

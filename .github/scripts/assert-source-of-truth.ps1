@@ -30,7 +30,7 @@ $required = [ordered]@{
     "SPs por schema"               = "$fv/procs-by-schema.json"
     "Vistas por schema"            = "$fv/views-by-schema.json"
     "Funciones por schema"         = "$fv/functions-by-schema.json"
-    "Clasificacion SPs (JSON)"      = "$fv/sp-classification.json"
+    "Clasificacion SPs (JSON)"      = "$plans/full-db-sp-classification.json"
     "Catalogo reglas Critical"     = "$rules/critical-rules-catalog.md"
     "Catalogo reglas Complex"      = "$rules/complex-rules-catalog.md"
 }
@@ -83,13 +83,39 @@ if ($AutoFix -and $missing.Count -gt 0) {
         }
     }
 
-    if (-not (Test-Path "$fv/sp-classification.json")) {
-        Write-Host "  [GEN] Generando sp-classification.json desde procs-by-schema.json..."
+    if (-not (Test-Path "$plans/full-db-sp-classification.json")) {
+        Write-Host "  [GEN] Generando full-db-sp-classification.json desde procs-by-schema.json..."
         if (Test-Path "$fv/procs-by-schema.json") {
             $procs = Get-Content "$fv/procs-by-schema.json" -Raw | ConvertFrom-Json
-            $clasificacion = @{ generado = (Get-Date -Format 'yyyy-MM-dd'); total = $procs.total; porEsquema = $procs.bySchema }
-            $clasificacion | ConvertTo-Json -Depth 6 | Out-File "$fv/sp-classification.json" -Encoding UTF8
-            Write-Host "  [OK] sp-classification.json generado"
+            $items = @()
+            foreach ($schemaName in $procs.bySchema.PSObject.Properties.Name) {
+                foreach ($procName in $procs.bySchema.$schemaName) {
+                    $items += [PSCustomObject]@{
+                        Schema = $schemaName
+                        Procedure = $procName
+                        FullName = "$schemaName.$procName"
+                        Category = "CRUD"
+                        Wave = "Wave-1"
+                        Strategy = "Dapper-Query"
+                        HasWriteOps = $false
+                        HasTransaction = $false
+                        HasCursor = $false
+                        HasDynamicSql = $false
+                        HasCrypto = $false
+                    }
+                }
+            }
+            $payload = [ordered]@{
+                metadata = [ordered]@{
+                    schemaVersion = "1.0"
+                    generatedAt = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+                    source = "$fv/procs-by-schema.json"
+                    total = $items.Count
+                }
+                data = $items
+            }
+            $payload | ConvertTo-Json -Depth 8 | Out-File "$plans/full-db-sp-classification.json" -Encoding UTF8
+            Write-Host "  [OK] full-db-sp-classification.json generado"
         } else {
             Write-Host "  [SKIP] procs-by-schema.json no disponible"
         }

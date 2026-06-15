@@ -1,7 +1,7 @@
 -- ============================================================
 -- SCRIPT 1/4: CAPTURE BASELINE — Query Store + DMV
 -- ProjectName Query Optimization Framework
--- Usage: Run against ProjectName database, save output to CSV
+-- Usage: Run against ProjectName database and persist output as JSON
 -- Frequency: BEFORE any optimization change
 -- ============================================================
 
@@ -223,6 +223,6 @@ ORDER BY sp.modification_counter DESC;
 GO
 
 PRINT '=== BASELINE CAPTURADO ===';
-PRINT 'Guarda esta salida como baseline-' + CONVERT(VARCHAR, GETDATE(), 112) + '.csv';
+PRINT 'Guarda esta salida como baseline-' + CONVERT(VARCHAR, GETDATE(), 112) + '.json';
 GO
 

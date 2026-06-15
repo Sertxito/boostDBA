@@ -27,7 +27,7 @@ Descubre y extrae lógica de negocio dispersa en stored procedures, documentando
 ```powershell
 $proyecto = (Get-ChildItem workspaces -Directory | Select-Object -First 1).Name
 $schemaPath = "workspaces/$proyecto/fuente-de-verdad/schema/db.sql"
-$csvPath    = "workspaces/$proyecto/plans/full-db-sp-classification.csv"
+$classificationPath = "workspaces/$proyecto/plans/full-db-sp-classification.json"
 $rulesDir   = "workspaces/$proyecto/reports/business-rules"
 
 
@@ -116,7 +116,7 @@ Get-Content "workspaces/<Proyecto>/fuente-de-verdad/schema/db.sql" | Select-Obje
 | Constantes numéricas (65535, 498, etc.) | Magic numbers = reglas hardcoded |
 
 ## Instrucciones
-1. **Localizar SPs Críticos/Complejos**: Usar la clasificación `full-db-sp-classification.csv` para priorizar. Critical primero, luego Complex.
+1. **Localizar SPs Críticos/Complejos**: Usar la clasificación `full-db-sp-classification.json` para priorizar. Critical primero, luego Complex.
 2. **Leer código real**: Aplicar Protocolo de Análisis Profundo para cada SP
 3. **Reconocimiento de Patrones**: Encontrar lógica duplicada leyendo código, no por nombre
 4. **Análisis de Rendimiento**: Señalar cursores, WHILE loops, SQL dinámico encontrados en el cuerpo

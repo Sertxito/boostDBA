@@ -105,7 +105,6 @@ WHERE s.object_id IS NULL
 
 ## Formatos de Salida
 
-- **CSV Export**: Importable en herramientas de análisis
 - **JSON**: Datos estructurados para automatización
 - **HTML Report**: Dashboard amigable para ejecutivos
 - **SQL Script**: Queries de análisis re-ejecutables
