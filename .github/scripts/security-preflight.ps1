@@ -48,20 +48,20 @@ foreach ($file in $nonSqlFiles) {
 # ── 3. GDPR Y CIFRADO EN SCHEMA SQL ───────────────────────────────────────────
 $schemaPath = "$fv/schema/db.sql"
 if (Test-Path $schemaPath) {
-    $openKey = Select-String -Path $schemaPath -Pattern 'OPEN\s+SYMMETRIC\s+KEY' -ErrorAction SilentlyContinue
-    if ($openKey) {
+    $openKey = @(Select-String -Path $schemaPath -Pattern 'OPEN\s+SYMMETRIC\s+KEY' -ErrorAction SilentlyContinue)
+    if ($openKey.Count -gt 0) {
         $warnings.Add("GDPR: $($openKey.Count) uso(s) de OPEN SYMMETRIC KEY — datos cifrados presentes. Migracion requiere gestion de clave.")
     }
-    $decrypt = Select-String -Path $schemaPath -Pattern 'DecryptByKey' -ErrorAction SilentlyContinue
-    if ($decrypt) {
+    $decrypt = @(Select-String -Path $schemaPath -Pattern 'DecryptByKey' -ErrorAction SilentlyContinue)
+    if ($decrypt.Count -gt 0) {
         $warnings.Add("GDPR: $($decrypt.Count) uso(s) de DecryptByKey — campos con datos personales protegidos. No incluir en salidas.")
     }
-    $grantSa = Select-String -Path $schemaPath -Pattern '\bGRANT\b.*\bsa\b|\bsa\b.*\bGRANT\b' -ErrorAction SilentlyContinue
-    if ($grantSa) {
+    $grantSa = @(Select-String -Path $schemaPath -Pattern '\bGRANT\b.*\bsa\b|\bsa\b.*\bGRANT\b' -ErrorAction SilentlyContinue)
+    if ($grantSa.Count -gt 0) {
         $failures.Add("SEGURIDAD: GRANT a usuario 'sa' en schema — privilegio excesivo.")
     }
-    $linkedSrv = Select-String -Path $schemaPath -Pattern 'sp_addlinkedserver|OPENQUERY\s*\(' -ErrorAction SilentlyContinue
-    if ($linkedSrv) {
+    $linkedSrv = @(Select-String -Path $schemaPath -Pattern 'sp_addlinkedserver|OPENQUERY\s*\(' -ErrorAction SilentlyContinue)
+    if ($linkedSrv.Count -gt 0) {
         $warnings.Add("INFRA: $($linkedSrv.Count) referencia(s) a LINKED SERVER — topologia interna expuesta en schema.")
     }
 }
@@ -71,7 +71,7 @@ $manifestPath = "$fv/manifest.json"
 if (Test-Path $manifestPath) {
     try {
         $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
-        if ($manifest.preflight.status -eq 'FAIL') {
+        if ($manifest.PSObject.Properties['preflight'] -and $manifest.preflight -and $manifest.preflight.status -eq 'FAIL') {
             $warnings.Add("PREFLIGHT BD: manifest indica FAIL — $($manifest.preflight.description)")
         }
     } catch {

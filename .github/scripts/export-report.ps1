@@ -24,6 +24,18 @@ $scriptDir = $PSScriptRoot
 $repoRoot = (Resolve-Path (Join-Path $scriptDir '..' '..')).Path
 $workspaceDir = Join-Path $repoRoot 'workspaces' $ProjectName
 
+$manifestPath = Join-Path $workspaceDir 'fuente-de-verdad' 'manifest.json'
+if (Test-Path $manifestPath) {
+    $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+    if ($manifest.anonymizationEnabled) {
+        $anonymizeArtifactsScript = Join-Path $scriptDir 'apply-artifact-anonymization.ps1'
+        if (Test-Path $anonymizeArtifactsScript) {
+            Write-Host "MODO ANONIMIZADO ACTIVO: saneando artefactos antes de exportar..." -ForegroundColor Yellow
+            & $anonymizeArtifactsScript -ProjectName $ProjectName -Scope all -Root $repoRoot
+        }
+    }
+}
+
 # TEST DEPENDENCIES
 Write-Host ""
 Write-Host "=== VERIFICACION DE DEPENDENCIAS ===" -ForegroundColor Cyan

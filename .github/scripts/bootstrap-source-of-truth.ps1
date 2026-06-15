@@ -3,6 +3,7 @@ param(
     [string]$ProjectName,
     [string]$SchemaPath,
     [string]$ConnectionString,
+    [switch]$Anonymize,
     [string]$Root = (Get-Location).Path
 )
 
@@ -37,6 +38,18 @@ if ($SchemaPath) {
     }
 }
 
+$anonymizationMappingsPath = $null
+if ($Anonymize -and (Test-Path $schemaOut)) {
+    $anonymizerScript = Join-Path $PSScriptRoot "invoke-sql-anonymization.ps1"
+    if (-not (Test-Path $anonymizerScript)) {
+        throw "No se encontro invoke-sql-anonymization.ps1"
+    }
+
+    $anonymizationMappingsPath = Join-Path $sourceRoot "anonymization-mappings.json"
+    Write-Host "Anonimizando source-of-truth SQL..."
+    & $anonymizerScript -SchemaRoot $schemaOut -MergedMappingsOut $anonymizationMappingsPath -Root $repoRoot
+}
+
 $redactedConnection = $null
 if ($ConnectionString) {
     if ($sourceType -eq "unknown") {
@@ -59,6 +72,9 @@ $manifest = [ordered]@{
     projectName = $ProjectName
     createdAt = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
     sourceType = $sourceType
+    anonymizationEnabled = [bool]$Anonymize
+    anonymizationMode = if ($Anonymize) { "full" } else { "none" }
+    anonymizationMappings = $anonymizationMappingsPath
     sourceSchemaPath = $SchemaPath
     redactedConnectionProfile = $redactedConnection
     schemaFileCount = (Get-ChildItem -Path $schemaOut -File -ErrorAction SilentlyContinue | Measure-Object).Count

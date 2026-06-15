@@ -30,6 +30,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$ProjectName,
     [string]$SchemaPath,
+    [switch]$Anonymize,
     [string]$Root = (Get-Location).Path
 )
 
@@ -102,6 +103,21 @@ if ($SchemaPath) {
     $ingestionEntry.action = "manifest-refresh"
 }
 
+$effectiveAnonymize = $Anonymize
+if (-not $effectiveAnonymize -and $previousManifest.PSObject.Properties['anonymizationEnabled']) {
+    $effectiveAnonymize = [bool]$previousManifest.anonymizationEnabled
+}
+
+if ($effectiveAnonymize -and (Test-Path $schemaOut)) {
+    $anonymizerScript = Join-Path $PSScriptRoot "invoke-sql-anonymization.ps1"
+    if (-not (Test-Path $anonymizerScript)) {
+        throw "No se encontro invoke-sql-anonymization.ps1"
+    }
+
+    Write-Host "  Reaplicando anonimización SQL..." -ForegroundColor Yellow
+    & $anonymizerScript -SchemaRoot $schemaOut -MergedMappingsOut (Join-Path $sourceRoot "anonymization-mappings.json") -Root $repoRoot
+}
+
 # --- Recalcular inventario del schema -------------------------------------------
 
 Write-Host "[2/3] Recalculando inventario..." -ForegroundColor Yellow
@@ -145,6 +161,9 @@ $updatedManifest = [ordered]@{
     updatedAt      = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
     refreshCount   = if ($previousManifest.refreshCount) { [int]$previousManifest.refreshCount + 1 } else { 1 }
     sourceType     = if ($SchemaPath) { "schema-files" } else { $previousManifest.sourceType }
+    anonymizationEnabled = [bool]$effectiveAnonymize
+    anonymizationMode = if ($effectiveAnonymize) { "full" } else { "none" }
+    anonymizationMappings = if ($effectiveAnonymize) { (Join-Path $sourceRoot "anonymization-mappings.json") } else { $null }
     sourceSchemaPath = if ($SchemaPath) { $SchemaPath } else { $previousManifest.sourceSchemaPath }
     schemaFileCount  = (Get-ChildItem -Path $schemaOut -File -ErrorAction SilentlyContinue | Measure-Object).Count
     objects          = $newObjects

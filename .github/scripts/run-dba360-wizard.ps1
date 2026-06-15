@@ -3,6 +3,8 @@ param(
     [string]$ProjectName,
     [string]$SchemaPath,
     [string]$ConnectionString,
+    [ValidateSet('ask', 'yes', 'no')]
+    [string]$Anonymize = 'ask',
     [string]$Root = (Get-Location).Path
 )
 
@@ -16,6 +18,23 @@ $preflightScript = Join-Path $PSScriptRoot "security-preflight.ps1"
 if (-not (Test-Path $bootstrapScript)) { throw "No se encontro bootstrap-source-of-truth.ps1" }
 if (-not (Test-Path $preflightScript)) { throw "No se encontro security-preflight.ps1" }
 
+$anonymizeEnabled = $false
+switch ($Anonymize) {
+    'yes' { $anonymizeEnabled = $true }
+    'no'  { $anonymizeEnabled = $false }
+    default {
+        # Prompt only when interactive; fallback to no anonymization in non-interactive runs.
+        if ($Host.Name -and $Host.Name -ne 'ServerRemoteHost') {
+            $answer = Read-Host "¿Quieres anonimizar la BBDD y todos los artefactos derivados del workspace? (s/N)"
+            $anonymizeEnabled = $answer -match '^(s|si|y|yes)$'
+        } else {
+            $anonymizeEnabled = $false
+        }
+    }
+}
+
+Write-Host "Modo de anonimización: $(if($anonymizeEnabled){'ACTIVO'}else{'DESACTIVADO'})"
+
 Write-Host "[1/2] Creando fuente de verdad local..."
 $bootstrapParams = @{
     ProjectName = $ProjectName
@@ -23,6 +42,7 @@ $bootstrapParams = @{
 }
 if ($SchemaPath) { $bootstrapParams.SchemaPath = $SchemaPath }
 if ($ConnectionString) { $bootstrapParams.ConnectionString = $ConnectionString }
+if ($anonymizeEnabled) { $bootstrapParams.Anonymize = $true }
 
 & $bootstrapScript @bootstrapParams
 

@@ -31,6 +31,47 @@ Usar todos los agentes especializados en auditorías amplias, programas de moder
 
 Si no hay trigger claro, permanecer en Modo Lean.
 
+## Flujo de Anonimización en Onboarding (Nuevo)
+
+Al inicializar un workspace con `run-dba360-wizard.ps1`, ahora se puede elegir modo de anonimización:
+
+- `-Anonymize ask` (por defecto): pregunta interactiva al inicio del wizard.
+- `-Anonymize yes`: anonimiza de extremo a extremo.
+- `-Anonymize no`: mantiene nombres/identificadores reales.
+
+### Comandos rápidos
+
+```powershell
+# 1) Modo recomendado (pregunta al iniciar)
+pwsh -File .github/scripts/run-dba360-wizard.ps1 -ProjectName "MiProyecto" -SchemaPath "input" -Anonymize ask
+
+# 2) Forzar anonimización total (uso externo / compartición con terceros)
+pwsh -File .github/scripts/run-dba360-wizard.ps1 -ProjectName "MiProyecto" -SchemaPath "input" -Anonymize yes
+
+# 3) Mantener identificadores reales (uso interno controlado)
+pwsh -File .github/scripts/run-dba360-wizard.ps1 -ProjectName "MiProyecto" -SchemaPath "input" -Anonymize no
+```
+
+### Recomendación operativa
+
+- **Entorno externo o documentos que saldrán de la organización**: usar `yes`.
+- **Entorno interno con controles de acceso y necesidad de trazabilidad real**: usar `no`.
+- **Si hay duda**: usar `ask` para decidir caso a caso al iniciar.
+
+### ¿Qué hace el modo anonimizado?
+
+1. Durante bootstrap/refresh anonimiza SQL de `fuente-de-verdad/schema/*.sql` usando la skill `sql-anonymization`.
+2. Guarda el estado en `manifest.json`:
+    - `anonymizationEnabled: true`
+    - `anonymizationMode: "full"`
+    - `anonymizationMappings: <ruta al mapping consolidado>`
+3. Antes de exportar Word (`export-report.ps1`) sanea automáticamente artefactos de entrega si el manifest está en modo anonimizado.
+
+### Comportamiento esperado
+
+- Si eliges anonimizar: BD + planes + reports + documentación de entrega salen en alias genéricos.
+- Si eliges no anonimizar: el flujo sigue igual, con identificadores reales.
+
 - **"Quiero arrancar y analizarlo todo desde cero"** → DBA 360 Orchestrator ← *empieza aquí*
 - **"¿Qué se romperá si cambiamos esto?"** → Change Impact Assessor
 - **"¿Cuáles procedimientos son realmente críticos?"** → DB Dependency Analyzer
